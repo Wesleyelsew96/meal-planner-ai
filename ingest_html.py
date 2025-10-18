@@ -3,7 +3,7 @@ import glob
 import json
 import os
 import re
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict
 
 
 def read_html(path: str) -> str:
@@ -59,6 +59,60 @@ def extract_title_and_lines(html: str, fallback_name: str) -> Tuple[str, List[st
     # Normalize newlines and split into lines
     lines = [ln.rstrip() for ln in main_text.splitlines()]
     return title, lines
+
+
+def extract_ultimate_guitar_meta(html: str, soup) -> Dict[str, Optional[str]]:
+    """Extract meta from an Ultimate Guitar page if detected.
+    Returns dict with possible keys: title, artist, bpm (int as str).
+    This is best-effort and tolerant to missing fields.
+    """
+    meta: Dict[str, Optional[str]] = {"title": None, "artist": None, "bpm": None}
+
+    # Look for JSON blobs in scripts that might contain tempo
+    try:
+        for sc in soup.find_all("script"):
+            if not sc.string:
+                # Some scripts have contents in .text
+                text = sc.get_text("\n", strip=False)
+            else:
+                text = sc.string
+            if not text:
+                continue
+            # Tempo/BPM patterns in embedded JSON
+            for pat in [r'"tempo"\s*:\s*(\d{2,3})', r'"bpm"\s*:\s*(\d{2,3})']:
+                m = re.search(pat, text)
+                if m:
+                    meta["bpm"] = m.group(1)
+                    break
+            # Artist/title patterns (very heuristic)
+            if meta["artist"] is None:
+                m = re.search(r'"artist_name"\s*:\s*"([^"]+)"', text)
+                if m:
+                    meta["artist"] = m.group(1)
+            if meta["title"] is None:
+                m = re.search(r'"song_name"\s*:\s*"([^"]+)"', text)
+                if m:
+                    meta["title"] = m.group(1)
+    except Exception:
+        pass
+
+    # Fallback: parse og:title like "Song Name chords by Artist @ Ultimate-Guitar.Com"
+    try:
+        og = soup.find("meta", property="og:title")
+        if og and og.get("content"):
+            content = og.get("content").strip()
+            # Extract "Song Name" and "Artist" heuristically
+            # Pattern examples: "Song Name chords by Artist @ Ultimate-Guitar.Com"
+            m = re.match(r"(.+?)\s+(?:chords|tab|tabs)\s+by\s+(.+?)\s+@\s+Ultimate-Guitar", content, re.IGNORECASE)
+            if m:
+                if meta["title"] is None:
+                    meta["title"] = m.group(1).strip()
+                if meta["artist"] is None:
+                    meta["artist"] = m.group(2).strip()
+    except Exception:
+        pass
+
+    return meta
 
 
 CHORD_RE = re.compile(
@@ -178,6 +232,40 @@ def find_chorus(lines: List[str]) -> Optional[List[str]]:
     return None
 
 
+def extract_bpm(lines: List[str]) -> Optional[int]:
+    """Best-effort BPM extraction from page text.
+    Looks for patterns such as:
+    - Tempo: 120, BPM: 120, 120 bpm
+    - ♩=120, ♪ = 120, q = 120
+    - Metronome 100
+    Returns an int in a sane range if found.
+    """
+    text = "\n".join(lines)
+    candidates: List[int] = []
+
+    patterns = [
+        r"(?i)\b(?:tempo|bpm)\s*[:=]?\s*(\d{2,3})\b",
+        r"(?i)\b(\d{2,3})\s*bpm\b",
+        r"[♩♪]\s*[:=]?\s*(\d{2,3})\b",
+        r"(?i)\bq\s*[:=]\s*(\d{2,3})\b",
+        r"(?i)\bmetronome\s*[:=]?\s*(\d{2,3})\b",
+    ]
+
+    for pat in patterns:
+        for m in re.finditer(pat, text):
+            try:
+                bpm = int(m.group(1))
+                if 30 <= bpm <= 300:
+                    candidates.append(bpm)
+            except Exception:
+                continue
+
+    if candidates:
+        # choose the mode-ish or first reasonable candidate
+        return candidates[0]
+    return None
+
+
 def main():
     parser = argparse.ArgumentParser(description="Parse local HTML files into JSONL {title, chorus} records.")
     parser.add_argument("--input", type=str, required=True, help="Path or glob to HTML files (e.g., html/*.html)")
@@ -208,14 +296,44 @@ def main():
             try:
                 html = read_html(fp)
                 title, lines = extract_title_and_lines(html, fp)
+                # UG-specific meta enrichment (if detected)
+                artist: Optional[str] = None
+                bpm_meta: Optional[int] = None
+                try:
+                    if "ultimate-guitar" in html.lower() or ("Ultimate-Guitar" in html):
+                        from bs4 import BeautifulSoup
+                        soup_tmp = BeautifulSoup(html, "lxml")
+                        ugm = extract_ultimate_guitar_meta(html, soup_tmp)
+                        if ugm.get("title"):
+                            title = ugm["title"].strip()
+                        if ugm.get("artist"):
+                            artist = ugm["artist"].strip()
+                        if ugm.get("bpm"):
+                            try:
+                                val = int(ugm["bpm"])  # type: ignore[arg-type]
+                                if 30 <= val <= 300:
+                                    bpm_meta = val
+                            except Exception:
+                                pass
+                except Exception:
+                    pass
                 chorus_lines = find_chorus(lines)
                 if not chorus_lines:
                     skipped += 1
                     continue
+                bpm = bpm_meta if bpm_meta is not None else extract_bpm(lines)
+                # Full lyrics (cleaned) if desired for other tasks
+                full_lyrics = "\n".join(clean_lines(lines)).strip()
                 record = {
                     "title": title,
                     "chorus": "\n".join(chorus_lines).strip(),
                 }
+                if artist:
+                    record["artist"] = artist
+                if bpm is not None:
+                    record["bpm"] = bpm
+                if full_lyrics:
+                    record["lyrics"] = full_lyrics
                 out.write(json.dumps(record, ensure_ascii=False) + "\n")
                 written += 1
             except Exception:

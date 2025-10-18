@@ -20,7 +20,16 @@ def read_jsonl(path: str) -> List[Dict[str, str]]:
 def build_text(example: Dict[str, str]) -> str:
     title = example["title"].strip()
     chorus = example["chorus"].strip()
-    return f"Title: {title}\nChorus:\n{chorus}\n"
+    bpm_val = example.get("bpm")
+    bpm_line = ""
+    try:
+        if bpm_val is not None:
+            bpm_int = int(bpm_val)
+            if 30 <= bpm_int <= 300:
+                bpm_line = f"\nBPM: {bpm_int}"
+    except (ValueError, TypeError):
+        pass
+    return f"Title: {title}{bpm_line}\nChorus:\n{chorus}\n"
 
 
 def main():

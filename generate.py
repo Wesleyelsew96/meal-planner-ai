@@ -6,6 +6,7 @@ def main():
     parser = argparse.ArgumentParser(description="Generate a chorus given a song title.")
     parser.add_argument("--model_dir", type=str, default="models/chorus-gpt2", help="Path to fine-tuned model")
     parser.add_argument("--title", type=str, required=True, help="Song title prompt")
+    parser.add_argument("--bpm", type=int, default=None, help="Beats per minute to condition generation")
     parser.add_argument("--max_new_tokens", type=int, default=80)
     parser.add_argument("--temperature", type=float, default=1.0)
     parser.add_argument("--top_p", type=float, default=0.9)
@@ -24,7 +25,11 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained(args.model_dir)
     model = AutoModelForCausalLM.from_pretrained(args.model_dir)
 
-    prompt = f"Title: {args.title}\nChorus:\n"
+    prompt_lines = [f"Title: {args.title}"]
+    if args.bpm is not None and 30 <= args.bpm <= 300:
+        prompt_lines.append(f"BPM: {args.bpm}")
+    prompt_lines.append("Chorus:\n")
+    prompt = "\n".join(prompt_lines)
     enc = tokenizer(prompt, return_tensors="pt")
     input_ids = enc.input_ids
     attention_mask = enc.attention_mask

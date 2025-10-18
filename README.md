@@ -1,12 +1,12 @@
-Chorus Generator (Title → Chorus)
-=================================
+Chorus Generator (Title + BPM → Chorus)
+======================================
 
-This project fine-tunes a small language model (e.g., GPT‑2) to generate a chorus given a song title.
+This project fine-tunes a small language model (e.g., GPT-2) to generate a song chorus conditioned on a title and optional BPM (tempo).
 
 IMPORTANT: Use only data you have the legal right to use. Do not scrape or train on copyrighted lyrics without permission.
 
 What You Get
-- Data format: simple JSONL with `{ "title": ..., "chorus": ... }`
+- Data format: JSONL with `{ "title": ..., "bpm": ..., "chorus": ... }` (`bpm` is optional but recommended)
 - Sample synthetic dataset: `data/sample.jsonl` (invented, not copyrighted)
 - Training script: `train.py`
 - Generation script: `generate.py`
@@ -31,12 +31,12 @@ pip install -r requirements.txt
 ```
 
 Data Format
-- One JSON object per line with `title` and `chorus` fields.
+- One JSON object per line with `title`, optional integer `bpm`, and `chorus` fields.
 - Example (see `data/sample.jsonl`):
 
 ```
-{"title": "Starlight Highway", "chorus": "..."}
-{"title": "Coffee in the Rain", "chorus": "..."}
+{"title": "Starlight Highway", "bpm": 118, "chorus": "..."}
+{"title": "Coffee in the Rain", "bpm": 92, "chorus": "..."}
 ```
 
 Train
@@ -46,13 +46,13 @@ python train.py --data data/your_dataset.jsonl --output_dir models/chorus-gpt2 -
 
 Generate
 ```
-python generate.py --model_dir models/chorus-gpt2 --title "Midnight Carousel" --max_new_tokens 80
+python generate.py --model_dir models/chorus-gpt2 --title "Midnight Carousel" --bpm 120 --max_new_tokens 80
 ```
 
 Where To Customize
-- Prompt template: `generate.py:20` — change how the prompt is constructed.
-- Preprocessing: `train.py:19` — tune how `Title`/`Chorus` text is stitched together.
-- Model/params: `train.py:30` and `train.py:76` — base model, epochs, batch size, LR, block size.
+- Prompt template: `generate.py:27` — change how the prompt is constructed (includes BPM when provided).
+- Preprocessing: `train.py:20` — tune how `Title`/`BPM`/`Chorus` text is stitched together.
+- Model/params: `train.py:30` and `train.py:87` — base model, epochs, batch size, LR, block size.
 
 Notes
 - Small models are easier to fine-tune on modest hardware. Try `distilgpt2` if `gpt2` is heavy.
@@ -60,7 +60,7 @@ Notes
 - Be mindful that generating or distributing copyrighted lyrics without permission may infringe rights.
 
 Ingest Local HTML Pages
-- Use `ingest_html.py` to parse saved HTML pages (e.g., pages you exported from a site you have permission to use) into the JSONL format used by training.
+- Use `ingest_html.py` to parse saved HTML pages (e.g., pages you exported from a site you have permission to use) into the JSONL format used by training. The script attempts to extract BPM from common notations on guitar tab or sheet music pages (e.g., `BPM: 120`, `Tempo: 120`, `♩=120`, `q = 120`). It includes site-specific heuristics for Ultimate Guitar (best-effort parsing of embedded JSON for `tempo`, plus artist/title parsing from metadata). It also writes an optional `lyrics` field with the cleaned full text.
 
 Example
 ```
@@ -75,9 +75,11 @@ Heuristics
 - Extracts main text from common containers like `<pre>`, `div.lyrics`, `article`.
 - Removes chord-only lines and inline bracketed chords like `[C]`.
 - Detects chorus via common markers (e.g., `[Chorus]`, `Chorus:`) or repeated stanza fallback; otherwise uses the longest plausible stanza.
+- Extracts BPM from lines mentioning Tempo/BPM or using note symbols (♩, ♪) and simple equality forms (`q = 120`).
+- Ultimate Guitar: best-effort extraction of `tempo`/`bpm` from embedded scripts, plus parsing of `artist`/`song_name` when available. Fallbacks to on-page text patterns.
 
 Legal Reminder
-- Save and parse only content you are authorized to use (your own, public domain, or with explicit license permitting ML training). Respect each site’s Terms of Service.
+- Save and parse only content you are authorized to use (your own, public domain, or with explicit license permitting ML training). Respect each site's Terms of Service. Do not scrape or republish copyrighted lyrics without permission.
 
 Publish to GitHub
 - This repo includes a Python-focused `.gitignore` to keep large artifacts (e.g., `models/`) out of version control.
