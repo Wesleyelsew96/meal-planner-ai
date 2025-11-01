@@ -1,0 +1,220 @@
+:root {
+  font-family: "Segoe UI", Tahoma, sans-serif;
+  color: #1f2933;
+  background: #f5f7fa;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+}
+
+header {
+  background: #334155;
+  color: #f8fafc;
+  padding: 1.5rem 2rem;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 2rem;
+}
+
+.tagline {
+  margin: 0.3rem 0 0;
+  font-size: 0.95rem;
+  opacity: 0.85;
+}
+
+main {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  padding: 2rem;
+}
+
+.panel {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel h2 {
+  margin-top: 0;
+  font-size: 1.2rem;
+}
+
+label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+
+input[type="text"],
+input[type="date"],
+input[type="number"],
+select,
+textarea {
+  width: 100%;
+  padding: 0.55rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  box-sizing: border-box;
+}
+
+textarea {
+  min-height: 70px;
+}
+
+.field {
+  margin-bottom: 1rem;
+}
+
+fieldset {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+
+fieldset label {
+  font-weight: 500;
+  margin-right: 0.75rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+button {
+  border: none;
+  border-radius: 8px;
+  padding: 0.55rem 1.1rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+button.primary {
+  background: #2563eb;
+  color: #fff;
+}
+
+button.secondary {
+  background: #e2e8f0;
+  color: #1f2933;
+}
+
+button.primary:hover {
+  background: #1d4ed8;
+}
+
+button.secondary:hover {
+  background: #cbd5f5;
+}
+
+.dish-columns {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.dish-column {
+  flex: 1;
+  min-width: 220px;
+}
+
+.dish-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.dish-list li {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0.6rem;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.dish-list li:hover {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.dish-meta {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin-top: 0.25rem;
+}
+
+.suggestion-controls {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.suggestion-card {
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 0.75rem;
+  margin-bottom: 0.8rem;
+  background: #f8fafc;
+}
+
+.suggestion-card h4 {
+  margin: 0 0 0.6rem;
+}
+
+.suggestion-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.45rem;
+}
+
+.suggestion-row:last-child {
+  margin-bottom: 0;
+}
+
+.suggestion-row button {
+  padding: 0.35rem 0.8rem;
+  font-size: 0.85rem;
+}
+
+.suggestion-row .selected {
+  font-weight: 600;
+  color: #0f766e;
+}
+
+.status {
+  min-height: 1.2rem;
+  font-size: 0.85rem;
+  color: #0f5132;
+}
+
+.status.error {
+  color: #b91c1c;
+}
+
+.user-summary {
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+footer {
+  padding: 1rem 2rem;
+  color: #64748b;
+}
+
+@media (max-width: 640px) {
+  main {
+    grid-template-columns: 1fr;
+  }
+}

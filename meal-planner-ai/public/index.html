@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meal Planner AI</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>Meal Planner AI</h1>
+    <p class="tagline">Suggest meals, capture favorites, and adjust your rotation without the CLI.</p>
+  </header>
+
+  <main>
+    <section class="panel">
+      <h2>User</h2>
+      <label for="user-select">Select user</label>
+      <select id="user-select"></select>
+      <div id="user-summary" class="user-summary"></div>
+    </section>
+
+    <section class="panel" id="dish-panel">
+      <h2>Dish Library</h2>
+      <div class="dish-columns">
+        <div class="dish-column" data-meal="breakfast">
+          <h3>Breakfast</h3>
+          <ul id="breakfast-list" class="dish-list"></ul>
+        </div>
+        <div class="dish-column" data-meal="lunch">
+          <h3>Lunch</h3>
+          <ul id="lunch-list" class="dish-list"></ul>
+        </div>
+        <div class="dish-column" data-meal="dinner">
+          <h3>Dinner</h3>
+          <ul id="dinner-list" class="dish-list"></ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Add / Edit Dish</h2>
+      <form id="dish-form">
+        <input type="hidden" id="dish-id" />
+        <div class="field">
+          <label for="dish-name">Dish name</label>
+          <input id="dish-name" type="text" placeholder="e.g., Veggie Omelette" required />
+        </div>
+        <fieldset class="field">
+          <legend>Meal types</legend>
+          <label><input type="checkbox" id="meal-breakfast" value="breakfast" /> Breakfast</label>
+          <label><input type="checkbox" id="meal-lunch" value="lunch" /> Lunch</label>
+          <label><input type="checkbox" id="meal-dinner" value="dinner" /> Dinner</label>
+        </fieldset>
+        <div class="field">
+          <label for="dish-notes">Notes</label>
+          <textarea id="dish-notes" placeholder="Any prep notes or favorite sides"></textarea>
+        </div>
+        <div class="field">
+          <label for="dish-metadata">Extra metadata (JSON)</label>
+          <textarea id="dish-metadata" placeholder='{"calories": 480, "prep": "10 min"}'></textarea>
+        </div>
+        <div class="actions">
+          <button type="submit" class="primary">Save dish</button>
+          <button type="button" id="dish-reset" class="secondary">Reset form</button>
+        </div>
+        <p id="dish-form-status" class="status" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section class="panel">
+      <h2>Suggestions</h2>
+      <form id="suggestion-form" class="suggestion-controls">
+        <div class="field">
+          <label for="suggestion-date">Start date</label>
+          <input id="suggestion-date" type="date" />
+        </div>
+        <div class="field">
+          <label for="suggestion-days">Days</label>
+          <input id="suggestion-days" type="number" min="1" max="30" value="3" />
+        </div>
+        <button type="submit" class="primary">Refresh</button>
+      </form>
+      <div id="suggestions"></div>
+    </section>
+  </main>
+
+  <footer>
+    <small>Baseline rotation only. Favorites, allergies, and budgeting coming soon.</small>
+  </footer>
+
+  <script src="/engine.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

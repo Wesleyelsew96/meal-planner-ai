@@ -1,0 +1,19 @@
+{
+  "userId": "demo-user",
+  "dishes": [
+    { "id": "eggs-toast", "name": "Eggs & Toast", "mealTypes": ["breakfast"] },
+    { "id": "oatmeal", "name": "Oatmeal", "mealTypes": ["breakfast"] },
+
+    { "id": "salad", "name": "Green Salad", "mealTypes": ["lunch"] },
+    { "id": "burrito", "name": "Burrito Bowl", "mealTypes": ["lunch"] },
+
+    { "id": "pasta", "name": "Pasta", "mealTypes": ["dinner"] },
+    { "id": "stirfry", "name": "Veggie Stir Fry", "mealTypes": ["dinner"] },
+    { "id": "tacos", "name": "Tacos", "mealTypes": ["dinner"] },
+    { "id": "curry", "name": "Chickpea Curry", "mealTypes": ["dinner"] },
+    { "id": "soup", "name": "Tomato Soup", "mealTypes": ["dinner"] },
+    { "id": "pizza", "name": "Pizza (Homemade)", "mealTypes": ["dinner"] },
+    { "id": "fish", "name": "Grilled Fish", "mealTypes": ["dinner"] }
+  ]
+}
+

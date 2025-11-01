@@ -1,0 +1,13 @@
+{
+  "name": "meal-planner-ai",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Baseline rotation-based meal suggestion engine with CLI.",
+  "license": "MIT",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server.js",
+    "start:cli": "node src/cli.js --profile ./examples/profile.example.json --days 1",
+    "test": "node test/engine.test.js"
+  }
+}
