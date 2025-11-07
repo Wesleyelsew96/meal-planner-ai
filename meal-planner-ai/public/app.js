@@ -15,6 +15,16 @@ const MEAL_LABELS = {
   supper: "Supper",
 };
 
+const WEEK_DAYS = [
+  { key: "monday", label: "Mon" },
+  { key: "tuesday", label: "Tue" },
+  { key: "wednesday", label: "Wed" },
+  { key: "thursday", label: "Thu" },
+  { key: "friday", label: "Fri" },
+  { key: "saturday", label: "Sat" },
+  { key: "sunday", label: "Sun" },
+];
+
 const FOOD_GROUP_DEFS = [
   { key: "meat", label: "Meat" },
   { key: "produce", label: "Produce" },
@@ -45,6 +55,7 @@ const state = {
   currentUser: null,
   editingDishId: null,
   dishFoodGroups: getDefaultFoodGroups(),
+  dishDays: [],
 };
 
 const elements = {
@@ -60,6 +71,7 @@ const elements = {
   dishForm: document.getElementById("dish-form"),
   dishId: document.getElementById("dish-id"),
   dishName: document.getElementById("dish-name"),
+  dishDays: document.getElementById("dish-days"),
   mealTypeOptions: document.getElementById("meal-type-options"),
   dishNotes: document.getElementById("dish-notes"),
   foodGroups: document.getElementById("food-group-grid"),
@@ -217,10 +229,53 @@ function getDisplayMeals(user = state.currentUser) {
   return meals.slice();
 }
 
+function setDishDays(days) {
+  state.dishDays = Array.isArray(days)
+    ? days
+      .map((day) => String(day || "").toLowerCase())
+      .filter((day, index, array) => WEEK_DAYS.some((def) => def.key === day) && array.indexOf(day) === index)
+    : [];
+}
+
+function renderDayCheckboxes(selectedDays = state.dishDays) {
+  if (!elements.dishDays) return;
+  setDishDays(selectedDays);
+  elements.dishDays.innerHTML = "";
+  const selectedSet = new Set(state.dishDays);
+  WEEK_DAYS.forEach((day) => {
+    const wrapper = document.createElement("label");
+    wrapper.className = "day-checkbox";
+    const caption = document.createElement("span");
+    caption.textContent = day.label;
+    caption.setAttribute("aria-hidden", "true");
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.value = day.key;
+    checkbox.checked = selectedSet.has(day.key);
+    checkbox.addEventListener("change", (event) => toggleDaySelection(day.key, event.target.checked));
+    wrapper.appendChild(caption);
+    wrapper.appendChild(checkbox);
+    elements.dishDays.appendChild(wrapper);
+  });
+}
+
+function toggleDaySelection(dayKey, isChecked) {
+  const day = String(dayKey || "").toLowerCase();
+  if (!WEEK_DAYS.some((def) => def.key === day)) return;
+  const existing = new Set(state.dishDays);
+  if (isChecked) {
+    existing.add(day);
+  } else {
+    existing.delete(day);
+  }
+  state.dishDays = Array.from(existing);
+}
+
 async function init() {
   bindEvents();
   renderMealTypeOptions();
   renderFoodGroupsEditor();
+  renderDayCheckboxes();
   await loadUsers();
   setDefaultDate();
 }
@@ -556,15 +611,14 @@ function renderDishes() {
 }
 
 function formatDishMeta(dish) {
-  const bits = [];
-  if (dish.notes) bits.push(dish.notes);
-  if (dish.description) bits.push(dish.description);
-  if (dish.metadata && typeof dish.metadata === "object") {
-    const metaBits = Object.entries(dish.metadata)
-      .map(([key, value]) => `${key}: ${value}`);
-    bits.push(metaBits.join(" | "));
-  }
-  return bits.filter(Boolean).join(" | ");
+  if (!Array.isArray(dish.days) || dish.days.length === 0) return "";
+  const labels = dish.days
+    .map((day) => {
+      const found = WEEK_DAYS.find((d) => d.key === day);
+      return found ? found.label : day;
+    })
+    .join(", ");
+  return `Days: ${labels}`;
 }
 
 function startDishEdit(dish) {
@@ -577,6 +631,7 @@ function startDishEdit(dish) {
   }
   state.dishFoodGroups = cloneFoodGroups(dish.foodGroups);
   renderFoodGroupsEditor();
+  renderDayCheckboxes(Array.isArray(dish.days) ? dish.days : []);
   if (elements.dishDelete) {
     elements.dishDelete.disabled = false;
   }
@@ -591,6 +646,7 @@ function resetDishForm() {
   renderMealTypeOptions([]);
   if (elements.dishNotes) elements.dishNotes.value = "";
   renderFoodGroupsEditor();
+  renderDayCheckboxes([]);
   if (elements.dishDelete) {
     elements.dishDelete.disabled = true;
   }
@@ -631,6 +687,7 @@ async function handleDishSubmit(event) {
   const mealTypes = getSelectedMealTypes();
   const notes = elements.dishNotes.value.trim();
   const foodGroups = getFoodGroupsPayload();
+  const plannedDays = state.dishDays.slice();
   if (!name) {
     setDishStatus("Name is required", true);
     return;
@@ -640,7 +697,7 @@ async function handleDishSubmit(event) {
     return;
   }
 
-  const payload = { name, mealTypes, foodGroups };
+  const payload = { name, mealTypes, foodGroups, days: plannedDays };
   if (notes) payload.notes = notes;
 
   const userId = state.currentUser.id;

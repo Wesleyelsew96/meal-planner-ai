@@ -9,6 +9,7 @@ const DEFAULT_MEALS_PER_DAY = 3;
 const MEAL_MIN = 2;
 const MEAL_MAX = 4;
 const FOOD_GROUP_KEYS = ["meat", "produce", "starch", "dairy"];
+const WEEK_DAY_KEYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 
 function clampMealsPerDay(value) {
   const num = Number(value);
@@ -46,6 +47,13 @@ function normalizeFoodGroups(source) {
   return groups;
 }
 
+function normalizeDays(list) {
+  if (!Array.isArray(list)) return [];
+  return list
+    .map((value) => String(value || "").toLowerCase())
+    .filter((value, index, array) => WEEK_DAY_KEYS.includes(value) && array.indexOf(value) === index);
+}
+
 function normalizeDish(dish) {
   if (!dish || typeof dish !== "object") return null;
   const normalized = { ...dish };
@@ -63,6 +71,7 @@ function normalizeDish(dish) {
     normalized.description = String(normalized.description);
   }
   normalized.foodGroups = normalizeFoodGroups(normalized.foodGroups || {});
+  normalized.days = normalizeDays(normalized.days);
   return normalized;
 }
 
@@ -257,7 +266,7 @@ async function handleCreateDish(req, res, userId) {
     sendJson(res, 400, { error: "Missing body" });
     return;
   }
-  const { id, name, mealTypes = [], description, notes, metadata, foodGroups } = payload;
+  const { id, name, mealTypes = [], description, notes, metadata, foodGroups, days } = payload;
   if (!name || !Array.isArray(mealTypes) || mealTypes.length === 0) {
     sendJson(res, 400, { error: "Dish requires name and at least one meal type" });
     return;
@@ -284,6 +293,7 @@ async function handleCreateDish(req, res, userId) {
     notes,
     metadata,
     foodGroups,
+    days,
   });
   user.dishes.push(dish);
   writeUsers(store);
@@ -318,6 +328,9 @@ async function handleUpdateDish(req, res, userId, dishId) {
   }
   if (payload.foodGroups && typeof payload.foodGroups === "object") {
     dish.foodGroups = normalizeFoodGroups(payload.foodGroups);
+  }
+  if (Object.prototype.hasOwnProperty.call(payload, "days")) {
+    dish.days = normalizeDays(payload.days);
   }
   writeUsers(store);
   sendJson(res, 200, dish);

@@ -20,7 +20,16 @@
             "produce": [],
             "starch": [],
             "dairy": []
-          }
+          },
+          "days": [
+            "monday",
+            "tuesday",
+            "wednesday",
+            "thursday",
+            "friday",
+            "saturday",
+            "sunday"
+          ]
         },
         {
           "id": "grain-bowl",
@@ -45,7 +54,13 @@
             "dairy": [
               "Cheese"
             ]
-          }
+          },
+          "days": [
+            "monday",
+            "wednesday",
+            "thursday",
+            "sunday"
+          ]
         },
         {
           "id": "sushi",
@@ -65,7 +80,10 @@
             "dairy": [
               "Cheese"
             ]
-          }
+          },
+          "days": [
+            "tuesday"
+          ]
         },
         {
           "id": "steak",
@@ -78,7 +96,8 @@
             "produce": [],
             "starch": [],
             "dairy": []
-          }
+          },
+          "days": []
         },
         {
           "id": "veggie-pasta",
@@ -91,7 +110,8 @@
             "produce": [],
             "starch": [],
             "dairy": []
-          }
+          },
+          "days": []
         },
         {
           "id": "pizzeria-leopold",
@@ -113,7 +133,11 @@
             "dairy": [
               "Cheese"
             ]
-          }
+          },
+          "days": [
+            "friday",
+            "saturday"
+          ]
         },
         {
           "id": "chicken-fries",
@@ -126,7 +150,8 @@
             "produce": [],
             "starch": [],
             "dairy": []
-          }
+          },
+          "days": []
         },
         {
           "id": "burger-fries",
@@ -139,7 +164,8 @@
             "produce": [],
             "starch": [],
             "dairy": []
-          }
+          },
+          "days": []
         },
         {
           "id": "steak-fries-asparagus",
@@ -152,7 +178,8 @@
             "produce": [],
             "starch": [],
             "dairy": []
-          }
+          },
+          "days": []
         },
         {
           "id": "pork-fries-green-beans",
@@ -165,7 +192,8 @@
             "produce": [],
             "starch": [],
             "dairy": []
-          }
+          },
+          "days": []
         },
         {
           "id": "tacos-fogon-lagunero",
@@ -181,7 +209,8 @@
             "produce": [],
             "starch": [],
             "dairy": []
-          }
+          },
+          "days": []
         },
         {
           "id": "chicken-noodles-asian",
@@ -194,7 +223,8 @@
             "produce": [],
             "starch": [],
             "dairy": []
-          }
+          },
+          "days": []
         },
         {
           "id": "chipotle-carnitas-bowl",
@@ -207,7 +237,8 @@
             "produce": [],
             "starch": [],
             "dairy": []
-          }
+          },
+          "days": []
         }
       ],
       "selections": {}
@@ -229,7 +260,8 @@
             "produce": [],
             "starch": [],
             "dairy": []
-          }
+          },
+          "days": []
         },
         {
           "id": "chicken-salad",
@@ -242,7 +274,8 @@
             "produce": [],
             "starch": [],
             "dairy": []
-          }
+          },
+          "days": []
         },
         {
           "id": "wrap",
@@ -255,7 +288,8 @@
             "produce": [],
             "starch": [],
             "dairy": []
-          }
+          },
+          "days": []
         },
         {
           "id": "salmon",
@@ -268,7 +302,8 @@
             "produce": [],
             "starch": [],
             "dairy": []
-          }
+          },
+          "days": []
         },
         {
           "id": "stir-fry",
@@ -281,7 +316,8 @@
             "produce": [],
             "starch": [],
             "dairy": []
-          }
+          },
+          "days": []
         },
         {
           "id": "taco-night",
@@ -294,7 +330,8 @@
             "produce": [],
             "starch": [],
             "dairy": []
-          }
+          },
+          "days": []
         }
       ],
       "selections": {}

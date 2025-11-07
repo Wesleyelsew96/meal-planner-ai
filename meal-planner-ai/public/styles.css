@@ -105,6 +105,25 @@ fieldset label {
   width: auto;
 }
 
+.day-selector {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(40px, 1fr));
+  gap: 0.5rem;
+}
+
+.day-selector .day-checkbox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.day-selector input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+}
+
 .actions {
   display: flex;
   gap: 0.75rem;
