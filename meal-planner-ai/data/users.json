@@ -2,27 +2,300 @@
   "users": [
     {
       "id": "jason",
-      "name": "Jason",
+      "name": "Wesley",
+      "mealsPerDay": 4,
       "dishes": [
-        { "id": "smoothie", "name": "Protein Smoothie", "mealTypes": ["breakfast"], "notes": "Add spinach for extra greens." },
-        { "id": "avocado-toast", "name": "Avocado Toast", "mealTypes": ["breakfast"] },
-        { "id": "grain-bowl", "name": "Grain Bowl", "mealTypes": ["lunch"], "metadata": { "calories": 520 } },
-        { "id": "sushi", "name": "Sushi", "mealTypes": ["lunch", "dinner"] },
-        { "id": "steak", "name": "Steak with Veggies", "mealTypes": ["dinner"] },
-        { "id": "veggie-pasta", "name": "Veggie Pasta", "mealTypes": ["dinner"] }
+        {
+          "id": "smoothie",
+          "name": "Eggs and Bacon",
+          "mealTypes": [
+            "breakfast"
+          ],
+          "notes": "adsf",
+          "foodGroups": {
+            "meat": [
+              "Eggs",
+              "Bacon"
+            ],
+            "produce": [],
+            "starch": [],
+            "dairy": []
+          }
+        },
+        {
+          "id": "grain-bowl",
+          "name": "Turkey Sandwich",
+          "mealTypes": [
+            "lunch"
+          ],
+          "metadata": {
+            "calories": 520
+          },
+          "foodGroups": {
+            "meat": [
+              "Turkey",
+              "Salami"
+            ],
+            "produce": [
+              "Spinach"
+            ],
+            "starch": [
+              "Bread"
+            ],
+            "dairy": [
+              "Cheese"
+            ]
+          }
+        },
+        {
+          "id": "sushi",
+          "name": "Costco",
+          "mealTypes": [
+            "lunch"
+          ],
+          "foodGroups": {
+            "meat": [
+              "Hotdog",
+              "Pepperoni"
+            ],
+            "produce": [],
+            "starch": [
+              "Bread"
+            ],
+            "dairy": [
+              "Cheese"
+            ]
+          }
+        },
+        {
+          "id": "steak",
+          "name": "Chicken Pasta",
+          "mealTypes": [
+            "dinner"
+          ],
+          "foodGroups": {
+            "meat": [],
+            "produce": [],
+            "starch": [],
+            "dairy": []
+          }
+        },
+        {
+          "id": "veggie-pasta",
+          "name": "Chicken + Rice",
+          "mealTypes": [
+            "dinner"
+          ],
+          "foodGroups": {
+            "meat": [],
+            "produce": [],
+            "starch": [],
+            "dairy": []
+          }
+        },
+        {
+          "id": "pizzeria-leopold",
+          "name": "Pizzeria Leopold",
+          "mealTypes": [
+            "lunch"
+          ],
+          "foodGroups": {
+            "meat": [
+              "Pepperoni",
+              "Salami"
+            ],
+            "produce": [
+              "Basil"
+            ],
+            "starch": [
+              "Bread"
+            ],
+            "dairy": [
+              "Cheese"
+            ]
+          }
+        },
+        {
+          "id": "chicken-fries",
+          "name": "Chicken + Fries",
+          "mealTypes": [
+            "dinner"
+          ],
+          "foodGroups": {
+            "meat": [],
+            "produce": [],
+            "starch": [],
+            "dairy": []
+          }
+        },
+        {
+          "id": "burger-fries",
+          "name": "Burger + Fries",
+          "mealTypes": [
+            "supper"
+          ],
+          "foodGroups": {
+            "meat": [],
+            "produce": [],
+            "starch": [],
+            "dairy": []
+          }
+        },
+        {
+          "id": "steak-fries-asparagus",
+          "name": "Steak + Fries + Asparagus",
+          "mealTypes": [
+            "supper"
+          ],
+          "foodGroups": {
+            "meat": [],
+            "produce": [],
+            "starch": [],
+            "dairy": []
+          }
+        },
+        {
+          "id": "pork-fries-green-beans",
+          "name": "Pork + Fries + Green Beans",
+          "mealTypes": [
+            "supper"
+          ],
+          "foodGroups": {
+            "meat": [],
+            "produce": [],
+            "starch": [],
+            "dairy": []
+          }
+        },
+        {
+          "id": "tacos-fogon-lagunero",
+          "name": "Tacos (Fogon Lagunero)",
+          "mealTypes": [
+            "supper"
+          ],
+          "foodGroups": {
+            "meat": [
+              "Carnitas",
+              "Al Pastor"
+            ],
+            "produce": [],
+            "starch": [],
+            "dairy": []
+          }
+        },
+        {
+          "id": "chicken-noodles-asian",
+          "name": "Chicken + Noodles (Asian)",
+          "mealTypes": [
+            "dinner"
+          ],
+          "foodGroups": {
+            "meat": [],
+            "produce": [],
+            "starch": [],
+            "dairy": []
+          }
+        },
+        {
+          "id": "chipotle-carnitas-bowl",
+          "name": "Chipotle Carnitas Bowl",
+          "mealTypes": [
+            "supper"
+          ],
+          "foodGroups": {
+            "meat": [],
+            "produce": [],
+            "starch": [],
+            "dairy": []
+          }
+        }
       ],
       "selections": {}
     },
     {
       "id": "wesley",
-      "name": "Wesley",
+      "name": "Jason",
+      "mealsPerDay": 3,
       "dishes": [
-        { "id": "eggs-bacon", "name": "Eggs and Bacon", "mealTypes": ["breakfast"], "notes": "Daily go-to breakfast." },
-        { "id": "chicken-salad", "name": "Chicken Salad", "mealTypes": ["lunch"] },
-        { "id": "wrap", "name": "Turkey Wrap", "mealTypes": ["lunch"] },
-        { "id": "salmon", "name": "Salmon & Quinoa", "mealTypes": ["dinner"] },
-        { "id": "stir-fry", "name": "Tofu Stir Fry", "mealTypes": ["dinner"] },
-        { "id": "taco-night", "name": "Fish Tacos", "mealTypes": ["dinner"] }
+        {
+          "id": "eggs-bacon",
+          "name": "Eggs and Bacon",
+          "mealTypes": [
+            "breakfast"
+          ],
+          "notes": "Daily go-to breakfast.",
+          "foodGroups": {
+            "meat": [],
+            "produce": [],
+            "starch": [],
+            "dairy": []
+          }
+        },
+        {
+          "id": "chicken-salad",
+          "name": "Chicken Salad",
+          "mealTypes": [
+            "lunch"
+          ],
+          "foodGroups": {
+            "meat": [],
+            "produce": [],
+            "starch": [],
+            "dairy": []
+          }
+        },
+        {
+          "id": "wrap",
+          "name": "Turkey Wrap",
+          "mealTypes": [
+            "lunch"
+          ],
+          "foodGroups": {
+            "meat": [],
+            "produce": [],
+            "starch": [],
+            "dairy": []
+          }
+        },
+        {
+          "id": "salmon",
+          "name": "Salmon & Quinoa",
+          "mealTypes": [
+            "dinner"
+          ],
+          "foodGroups": {
+            "meat": [],
+            "produce": [],
+            "starch": [],
+            "dairy": []
+          }
+        },
+        {
+          "id": "stir-fry",
+          "name": "Tofu Stir Fry",
+          "mealTypes": [
+            "dinner"
+          ],
+          "foodGroups": {
+            "meat": [],
+            "produce": [],
+            "starch": [],
+            "dairy": []
+          }
+        },
+        {
+          "id": "taco-night",
+          "name": "Fish Tacos",
+          "mealTypes": [
+            "dinner"
+          ],
+          "foodGroups": {
+            "meat": [],
+            "produce": [],
+            "starch": [],
+            "dairy": []
+          }
+        }
       ],
       "selections": {}
     }

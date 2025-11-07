@@ -17,25 +17,32 @@
       <h2>User</h2>
       <label for="user-select">Select user</label>
       <select id="user-select"></select>
+      <form id="user-form" class="user-form">
+        <div class="field">
+          <label for="user-name">Name</label>
+          <input id="user-name" type="text" placeholder="e.g., Taylor" />
+        </div>
+        <div class="field">
+          <label for="user-meals">Meals per day</label>
+          <select id="user-meals">
+            <option value="2">2 meals</option>
+            <option value="3">3 meals</option>
+            <option value="4">4 meals</option>
+          </select>
+        </div>
+        <div class="user-actions">
+          <button type="button" id="user-create" class="secondary">Add user</button>
+          <button type="submit" id="user-save" class="primary">Save changes</button>
+          <button type="button" id="user-delete" class="danger">Delete user</button>
+        </div>
+        <p id="user-status" class="status" aria-live="polite"></p>
+      </form>
       <div id="user-summary" class="user-summary"></div>
     </section>
 
     <section class="panel" id="dish-panel">
       <h2>Dish Library</h2>
-      <div class="dish-columns">
-        <div class="dish-column" data-meal="breakfast">
-          <h3>Breakfast</h3>
-          <ul id="breakfast-list" class="dish-list"></ul>
-        </div>
-        <div class="dish-column" data-meal="lunch">
-          <h3>Lunch</h3>
-          <ul id="lunch-list" class="dish-list"></ul>
-        </div>
-        <div class="dish-column" data-meal="dinner">
-          <h3>Dinner</h3>
-          <ul id="dinner-list" class="dish-list"></ul>
-        </div>
-      </div>
+      <div class="dish-columns" id="dish-columns"></div>
     </section>
 
     <section class="panel">
@@ -48,21 +55,20 @@
         </div>
         <fieldset class="field">
           <legend>Meal types</legend>
-          <label><input type="checkbox" id="meal-breakfast" value="breakfast" /> Breakfast</label>
-          <label><input type="checkbox" id="meal-lunch" value="lunch" /> Lunch</label>
-          <label><input type="checkbox" id="meal-dinner" value="dinner" /> Dinner</label>
+          <div id="meal-type-options" class="checkbox-group"></div>
         </fieldset>
+        <div class="field">
+          <label>Food groups</label>
+          <div id="food-group-grid" class="food-groups"></div>
+        </div>
         <div class="field">
           <label for="dish-notes">Notes</label>
           <textarea id="dish-notes" placeholder="Any prep notes or favorite sides"></textarea>
         </div>
-        <div class="field">
-          <label for="dish-metadata">Extra metadata (JSON)</label>
-          <textarea id="dish-metadata" placeholder='{"calories": 480, "prep": "10 min"}'></textarea>
-        </div>
         <div class="actions">
           <button type="submit" class="primary">Save dish</button>
           <button type="button" id="dish-reset" class="secondary">Reset form</button>
+          <button type="button" id="dish-delete" class="danger" disabled>Delete dish</button>
         </div>
         <p id="dish-form-status" class="status" aria-live="polite"></p>
       </form>

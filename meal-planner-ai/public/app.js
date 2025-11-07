@@ -1,52 +1,284 @@
+const DEFAULT_MEAL_MIN = 2;
+const DEFAULT_MEAL_MAX = 4;
+const DEFAULT_MEALS_PER_DAY = 3;
+
+const MEAL_SETS = {
+  2: ["breakfast", "dinner"],
+  3: ["breakfast", "lunch", "dinner"],
+  4: ["breakfast", "lunch", "dinner", "supper"],
+};
+
+const MEAL_LABELS = {
+  breakfast: "Breakfast",
+  lunch: "Lunch",
+  dinner: "Dinner",
+  supper: "Supper",
+};
+
+const FOOD_GROUP_DEFS = [
+  { key: "meat", label: "Meat" },
+  { key: "produce", label: "Produce" },
+  { key: "starch", label: "Starch" },
+  { key: "dairy", label: "Dairy" },
+];
+
+function getDefaultFoodGroups() {
+  return FOOD_GROUP_DEFS.reduce((acc, group) => {
+    acc[group.key] = [];
+    return acc;
+  }, {});
+}
+
+function cloneFoodGroups(source) {
+  const target = getDefaultFoodGroups();
+  if (!source || typeof source !== "object") return target;
+  FOOD_GROUP_DEFS.forEach(({ key }) => {
+    target[key] = Array.isArray(source[key])
+      ? source[key].map((item) => String(item || ""))
+      : [];
+  });
+  return target;
+}
+
 const state = {
   users: [],
   currentUser: null,
   editingDishId: null,
+  dishFoodGroups: getDefaultFoodGroups(),
 };
 
 const elements = {
   userSelect: document.getElementById("user-select"),
+  userForm: document.getElementById("user-form"),
+  userName: document.getElementById("user-name"),
+  userMeals: document.getElementById("user-meals"),
+  userCreate: document.getElementById("user-create"),
+  userSave: document.getElementById("user-save"),
+  userDelete: document.getElementById("user-delete"),
+  userStatus: document.getElementById("user-status"),
   userSummary: document.getElementById("user-summary"),
   dishForm: document.getElementById("dish-form"),
   dishId: document.getElementById("dish-id"),
   dishName: document.getElementById("dish-name"),
-  mealBreakfast: document.getElementById("meal-breakfast"),
-  mealLunch: document.getElementById("meal-lunch"),
-  mealDinner: document.getElementById("meal-dinner"),
+  mealTypeOptions: document.getElementById("meal-type-options"),
   dishNotes: document.getElementById("dish-notes"),
-  dishMetadata: document.getElementById("dish-metadata"),
+  foodGroups: document.getElementById("food-group-grid"),
+  dishColumns: document.getElementById("dish-columns"),
   dishStatus: document.getElementById("dish-form-status"),
   dishReset: document.getElementById("dish-reset"),
-  lists: {
-    breakfast: document.getElementById("breakfast-list"),
-    lunch: document.getElementById("lunch-list"),
-    dinner: document.getElementById("dinner-list"),
-  },
+  dishDelete: document.getElementById("dish-delete"),
   suggestionForm: document.getElementById("suggestion-form"),
   suggestionDate: document.getElementById("suggestion-date"),
   suggestionDays: document.getElementById("suggestion-days"),
   suggestions: document.getElementById("suggestions"),
 };
 
+function clampMealsPerDay(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return DEFAULT_MEALS_PER_DAY;
+  return Math.min(DEFAULT_MEAL_MAX, Math.max(DEFAULT_MEAL_MIN, num));
+}
+
+function getMealsPerDayFromInput() {
+  if (!elements.userMeals) return DEFAULT_MEALS_PER_DAY;
+  return clampMealsPerDay(elements.userMeals.value);
+}
+
+function renderMealTypeOptions(selectedMeals = getSelectedMealTypes()) {
+  if (!elements.mealTypeOptions) return;
+  const meals = getAvailableMealTypes();
+  elements.mealTypeOptions.innerHTML = "";
+
+  if (!state.currentUser || meals.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "food-group-empty";
+    empty.textContent = "Select a user to choose meal types.";
+    elements.mealTypeOptions.appendChild(empty);
+    return;
+  }
+
+  const selectedSet = new Set(
+    selectedMeals.filter((meal) => meals.includes(meal))
+  );
+
+  meals.forEach((meal) => {
+    const label = document.createElement("label");
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.value = meal;
+    checkbox.checked = selectedSet.has(meal);
+    label.appendChild(checkbox);
+    label.appendChild(document.createTextNode(MEAL_LABELS[meal] || meal));
+    elements.mealTypeOptions.appendChild(label);
+  });
+}
+
+function getSelectedMealTypes() {
+  if (!elements.mealTypeOptions) return [];
+  const inputs = elements.mealTypeOptions.querySelectorAll('input[type="checkbox"]');
+  return Array.from(inputs)
+    .filter((input) => input.checked)
+    .map((input) => input.value);
+}
+
+function renderFoodGroupsEditor() {
+  if (!elements.foodGroups) return;
+  elements.foodGroups.innerHTML = "";
+  FOOD_GROUP_DEFS.forEach(({ key, label }) => {
+    const column = document.createElement("div");
+    column.className = "food-group-column";
+    column.dataset.group = key;
+
+    const header = document.createElement("div");
+    header.className = "food-group-header";
+    const title = document.createElement("span");
+    title.textContent = label;
+    const addBtn = document.createElement("button");
+    addBtn.type = "button";
+    addBtn.className = "icon-button add";
+    addBtn.textContent = "+";
+    addBtn.title = `Add ${label} item`;
+    addBtn.addEventListener("click", () => addFoodGroupItem(key));
+    header.appendChild(title);
+    header.appendChild(addBtn);
+    column.appendChild(header);
+
+    const list = document.createElement("div");
+    list.className = "food-group-list";
+    const items = state.dishFoodGroups[key] || [];
+    if (items.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "food-group-empty";
+      empty.textContent = "No items yet.";
+      list.appendChild(empty);
+    } else {
+      items.forEach((value, index) => {
+        const row = document.createElement("div");
+        row.className = "food-group-row";
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "icon-button remove";
+        removeBtn.textContent = "-";
+        removeBtn.title = "Remove item";
+        removeBtn.addEventListener("click", () => removeFoodGroupItem(key, index));
+        const input = document.createElement("input");
+        input.type = "text";
+        input.value = value;
+        input.placeholder = `Add ${label.toLowerCase()}`;
+        input.dataset.group = key;
+        input.dataset.index = String(index);
+        input.addEventListener("input", (event) => updateFoodGroupItem(key, index, event.target.value));
+        row.appendChild(removeBtn);
+        row.appendChild(input);
+        list.appendChild(row);
+      });
+    }
+    column.appendChild(list);
+    elements.foodGroups.appendChild(column);
+  });
+}
+
+function addFoodGroupItem(groupKey) {
+  if (!state.dishFoodGroups[groupKey]) state.dishFoodGroups[groupKey] = [];
+  state.dishFoodGroups[groupKey].push("");
+  renderFoodGroupsEditor();
+}
+
+function removeFoodGroupItem(groupKey, index) {
+  if (!state.dishFoodGroups[groupKey]) return;
+  state.dishFoodGroups[groupKey].splice(index, 1);
+  renderFoodGroupsEditor();
+}
+
+function updateFoodGroupItem(groupKey, index, value) {
+  if (!state.dishFoodGroups[groupKey]) return;
+  state.dishFoodGroups[groupKey][index] = value;
+}
+
+function getFoodGroupsPayload() {
+  const payload = {};
+  FOOD_GROUP_DEFS.forEach(({ key }) => {
+    const list = state.dishFoodGroups[key] || [];
+    payload[key] = list
+      .map((item) => String(item || "").trim())
+      .filter((item) => item.length > 0);
+  });
+  return payload;
+}
+function getAvailableMealTypes() {
+  if (!state.currentUser) return [];
+  const mealsPerDay = getMealsPerDayFromInput();
+  return (MEAL_SETS[mealsPerDay] || MEAL_SETS[DEFAULT_MEALS_PER_DAY]).slice();
+}
+
+function getDisplayMeals(user = state.currentUser) {
+  if (!user) return MEAL_SETS[DEFAULT_MEALS_PER_DAY].slice();
+  const meals = MEAL_SETS[user.mealsPerDay] || MEAL_SETS[DEFAULT_MEALS_PER_DAY];
+  return meals.slice();
+}
+
 async function init() {
   bindEvents();
+  renderMealTypeOptions();
+  renderFoodGroupsEditor();
   await loadUsers();
   setDefaultDate();
 }
 
 function bindEvents() {
-  elements.userSelect.addEventListener("change", (event) => {
-    const userId = event.target.value;
-    if (userId) selectUser(userId);
-  });
+  if (elements.userSelect) {
+    elements.userSelect.addEventListener("change", (event) => {
+      const userId = event.target.value;
+      if (userId) selectUser(userId);
+      else clearCurrentUser();
+    });
+  }
 
-  elements.dishForm.addEventListener("submit", handleDishSubmit);
-  elements.dishReset.addEventListener("click", () => resetDishForm());
+  if (elements.userForm) {
+    elements.userForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      handleUserSave();
+    });
+  }
 
-  elements.suggestionForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-    renderSuggestions();
-  });
+  if (elements.userMeals) {
+    elements.userMeals.addEventListener("change", () => {
+      renderMealTypeOptions();
+    });
+  }
+
+  if (elements.userCreate) {
+    elements.userCreate.addEventListener("click", (event) => {
+      event.preventDefault();
+      handleUserCreate();
+    });
+  }
+
+  if (elements.userDelete) {
+    elements.userDelete.addEventListener("click", (event) => {
+      event.preventDefault();
+      handleUserDelete();
+    });
+  }
+
+  if (elements.dishForm) {
+    elements.dishForm.addEventListener("submit", handleDishSubmit);
+  }
+
+  if (elements.dishReset) {
+    elements.dishReset.addEventListener("click", () => resetDishForm());
+  }
+
+  if (elements.dishDelete) {
+    elements.dishDelete.addEventListener("click", () => handleDishDelete());
+  }
+
+  if (elements.suggestionForm) {
+    elements.suggestionForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      renderSuggestions();
+    });
+  }
 }
 
 function setDefaultDate() {
@@ -55,21 +287,39 @@ function setDefaultDate() {
   elements.suggestionDate.value = iso;
 }
 
-async function loadUsers() {
-  const res = await fetch("/api/users");
-  const users = await res.json();
-  state.users = users;
-  renderUserOptions();
-  if (users.length > 0) {
-    selectUser(users[0].id);
+async function loadUsers(preferredId) {
+  try {
+    const res = await fetch("/api/users");
+    if (!res.ok) throw new Error(`Failed to load users (${res.status})`);
+    const users = await res.json();
+    state.users = Array.isArray(users) ? users : [];
+    renderUserOptions();
+    const targetId = preferredId
+      || (state.currentUser && state.users.some((user) => user.id === state.currentUser.id) ? state.currentUser.id : null)
+      || (state.users[0] && state.users[0].id);
+    if (targetId) {
+      await selectUser(targetId);
+    } else {
+      clearCurrentUser();
+    }
+    return true;
+  } catch (err) {
+    console.error("Unable to load users", err);
+    setUserStatus("Unable to load users.", true);
+    clearCurrentUser();
+    return false;
   }
 }
 
 function renderUserOptions() {
+  if (!elements.userSelect) return;
   elements.userSelect.innerHTML = "";
   const placeholder = document.createElement("option");
-  placeholder.textContent = "Select user";
+  const hasUsers = state.users.length > 0;
+  placeholder.textContent = hasUsers ? "Select user" : "No users";
   placeholder.value = "";
+  placeholder.disabled = true;
+  placeholder.selected = !state.currentUser;
   elements.userSelect.appendChild(placeholder);
 
   state.users.forEach((user) => {
@@ -81,6 +331,43 @@ function renderUserOptions() {
     }
     elements.userSelect.appendChild(opt);
   });
+
+  elements.userSelect.disabled = state.users.length === 0;
+}
+
+function clearCurrentUser() {
+  state.currentUser = null;
+  state.editingDishId = null;
+  if (elements.userSelect) {
+    elements.userSelect.value = "";
+  }
+  fillUserForm();
+  renderUserSummary();
+  renderDishes();
+  if (elements.suggestions) {
+    elements.suggestions.innerHTML = "<p>Select a user to view suggestions.</p>";
+  }
+  renderMealTypeOptions([]);
+  state.dishFoodGroups = getDefaultFoodGroups();
+  renderFoodGroupsEditor();
+}
+
+function fillUserForm() {
+  const hasUser = Boolean(state.currentUser);
+  if (elements.userName) {
+    elements.userName.value = hasUser ? (state.currentUser.name || "") : "";
+  }
+  if (elements.userMeals) {
+    const value = hasUser ? clampMealsPerDay(state.currentUser.mealsPerDay) : DEFAULT_MEALS_PER_DAY;
+    elements.userMeals.value = String(value);
+  }
+  if (elements.userSave) {
+    elements.userSave.disabled = !hasUser;
+  }
+  if (elements.userDelete) {
+    elements.userDelete.disabled = !hasUser;
+  }
+  renderMealTypeOptions();
 }
 
 async function selectUser(userId) {
@@ -90,18 +377,25 @@ async function selectUser(userId) {
     return;
   }
   const user = await res.json();
-  state.currentUser = user;
+  state.currentUser = {
+    ...user,
+    mealsPerDay: clampMealsPerDay(user.mealsPerDay ?? DEFAULT_MEALS_PER_DAY),
+  };
   state.editingDishId = null;
-  elements.userSelect.value = userId;
+  if (elements.userSelect) {
+    elements.userSelect.value = userId;
+  }
+  fillUserForm();
   renderUserSummary();
   renderDishes();
   resetDishForm();
   renderSuggestions();
+  setUserStatus("");
 }
 
 function renderUserSummary() {
   if (!state.currentUser) {
-    elements.userSummary.textContent = "";
+    elements.userSummary.textContent = "Add or select a user to begin.";
     return;
   }
   const counts = {
@@ -114,39 +408,150 @@ function renderUserSummary() {
       if (counts[meal] !== undefined) counts[meal] += 1;
     });
   });
-  elements.userSummary.textContent = `Dishes - Breakfast: ${counts.breakfast}, Lunch: ${counts.lunch}, Dinner: ${counts.dinner}`;
+  const mealsPerDay = state.currentUser.mealsPerDay || DEFAULT_MEALS_PER_DAY;
+  elements.userSummary.textContent = `Meals per day: ${mealsPerDay} - Dishes: Breakfast ${counts.breakfast}, Lunch ${counts.lunch}, Dinner ${counts.dinner}`;
+}
+
+function getUserFormPayload() {
+  const name = elements.userName ? elements.userName.value.trim() : "";
+  const mealsPerDay = getMealsPerDayFromInput();
+  return { name, mealsPerDay };
+}
+
+async function handleUserCreate() {
+  const payload = getUserFormPayload();
+  if (!payload.name) {
+    setUserStatus("Name is required.", true);
+    return;
+  }
+  try {
+    const res = await fetch("/api/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data) {
+      throw new Error((data && data.error) || "Unable to create user.");
+    }
+    const user = data;
+    setUserStatus(`Created ${user.name || user.id}.`);
+    await loadUsers(user.id);
+  } catch (err) {
+    console.error("Failed to create user", err);
+    setUserStatus(err.message || "Unable to create user.", true);
+  }
+}
+
+async function handleUserSave() {
+  if (!state.currentUser) {
+    setUserStatus("Select a user before saving.", true);
+    return;
+  }
+  const payload = getUserFormPayload();
+  if (!payload.name) {
+    setUserStatus("Name is required.", true);
+    return;
+  }
+  try {
+    const res = await fetch(`/api/users/${state.currentUser.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data) {
+      throw new Error((data && data.error) || "Unable to save user.");
+    }
+    const updated = data;
+    state.currentUser = {
+      ...state.currentUser,
+      ...updated,
+      mealsPerDay: clampMealsPerDay(updated.mealsPerDay ?? payload.mealsPerDay),
+    };
+    fillUserForm();
+    renderUserSummary();
+    setUserStatus("User saved.");
+    await loadUsers(state.currentUser.id);
+  } catch (err) {
+    console.error("Failed to save user", err);
+    setUserStatus(err.message || "Unable to save user.", true);
+  }
+}
+
+async function handleUserDelete() {
+  if (!state.currentUser) {
+    setUserStatus("Select a user before deleting.", true);
+    return;
+  }
+  const confirmed = window.confirm(`Delete ${state.currentUser.name || state.currentUser.id}?`);
+  if (!confirmed) return;
+  try {
+    const res = await fetch(`/api/users/${state.currentUser.id}`, {
+      method: "DELETE",
+    });
+    if (!res.ok && res.status !== 204) {
+      const info = await res.json().catch(() => ({}));
+      throw new Error(info.error || "Unable to delete user.");
+    }
+    setUserStatus("User deleted.");
+    await loadUsers();
+  } catch (err) {
+    console.error("Failed to delete user", err);
+    setUserStatus(err.message || "Unable to delete user.", true);
+  }
 }
 
 function renderDishes() {
-  if (!state.currentUser) return;
-  const meals = ["breakfast", "lunch", "dinner"];
+  if (!elements.dishColumns) return;
+  if (!state.currentUser) {
+    elements.dishColumns.innerHTML = '<p class="empty-state">Add or select a user to manage dishes.</p>';
+    return;
+  }
+  const meals = getDisplayMeals(state.currentUser);
+  elements.dishColumns.innerHTML = "";
   meals.forEach((meal) => {
-    const list = elements.lists[meal];
-    list.innerHTML = "";
-    const dishes = state.currentUser.dishes.filter((dish) => dish.mealTypes.includes(meal));
+    const column = document.createElement("div");
+    column.className = "dish-column";
+    column.dataset.meal = meal;
+
+    const heading = document.createElement("h3");
+    heading.textContent = MEAL_LABELS[meal] || meal;
+    column.appendChild(heading);
+
+    const list = document.createElement("ul");
+    list.className = "dish-list";
+
+    const dishes = state.currentUser.dishes.filter(
+      (dish) => Array.isArray(dish.mealTypes) && dish.mealTypes.includes(meal)
+    );
+
     if (dishes.length === 0) {
       const empty = document.createElement("li");
       empty.textContent = "No dishes yet.";
       empty.className = "empty";
       list.appendChild(empty);
-      return;
+    } else {
+      dishes.forEach((dish) => {
+        const li = document.createElement("li");
+        li.dataset.dishId = dish.id;
+        const header = document.createElement("div");
+        header.textContent = dish.name;
+        li.appendChild(header);
+        const meta = formatDishMeta(dish);
+        if (meta) {
+          const metaEl = document.createElement("div");
+          metaEl.className = "dish-meta";
+          metaEl.textContent = meta;
+          li.appendChild(metaEl);
+        }
+        li.addEventListener("click", () => startDishEdit(dish));
+        list.appendChild(li);
+      });
     }
-    dishes.forEach((dish) => {
-      const li = document.createElement("li");
-      li.dataset.dishId = dish.id;
-      const header = document.createElement("div");
-      header.textContent = dish.name;
-      li.appendChild(header);
-      const meta = formatDishMeta(dish);
-      if (meta) {
-        const metaEl = document.createElement("div");
-        metaEl.className = "dish-meta";
-        metaEl.textContent = meta;
-        li.appendChild(metaEl);
-      }
-      li.addEventListener("click", () => startDishEdit(dish));
-      list.appendChild(li);
-    });
+
+    column.appendChild(list);
+    elements.dishColumns.appendChild(column);
   });
 }
 
@@ -164,30 +569,58 @@ function formatDishMeta(dish) {
 
 function startDishEdit(dish) {
   state.editingDishId = dish.id;
-  elements.dishId.value = dish.id;
-  elements.dishName.value = dish.name || "";
-  elements.mealBreakfast.checked = dish.mealTypes.includes("breakfast");
-  elements.mealLunch.checked = dish.mealTypes.includes("lunch");
-  elements.mealDinner.checked = dish.mealTypes.includes("dinner");
-  elements.dishNotes.value = dish.notes || dish.description || "";
-  if (dish.metadata) {
-    elements.dishMetadata.value = JSON.stringify(dish.metadata, null, 2);
-  } else {
-    elements.dishMetadata.value = "";
+  if (elements.dishId) elements.dishId.value = dish.id;
+  if (elements.dishName) elements.dishName.value = dish.name || "";
+  renderMealTypeOptions(Array.isArray(dish.mealTypes) ? dish.mealTypes : []);
+  if (elements.dishNotes) {
+    elements.dishNotes.value = dish.notes || dish.description || "";
   }
-  elements.dishStatus.textContent = `Editing ${dish.name}`;
+  state.dishFoodGroups = cloneFoodGroups(dish.foodGroups);
+  renderFoodGroupsEditor();
+  if (elements.dishDelete) {
+    elements.dishDelete.disabled = false;
+  }
+  setDishStatus(`Editing ${dish.name}`);
 }
 
 function resetDishForm() {
   state.editingDishId = null;
-  elements.dishId.value = "";
-  elements.dishName.value = "";
-  elements.mealBreakfast.checked = false;
-  elements.mealLunch.checked = false;
-  elements.mealDinner.checked = false;
-  elements.dishNotes.value = "";
-  elements.dishMetadata.value = "";
-  elements.dishStatus.textContent = "";
+  state.dishFoodGroups = getDefaultFoodGroups();
+  if (elements.dishId) elements.dishId.value = "";
+  if (elements.dishName) elements.dishName.value = "";
+  renderMealTypeOptions([]);
+  if (elements.dishNotes) elements.dishNotes.value = "";
+  renderFoodGroupsEditor();
+  if (elements.dishDelete) {
+    elements.dishDelete.disabled = true;
+  }
+  setDishStatus("");
+}
+
+async function handleDishDelete() {
+  if (!state.currentUser || !state.editingDishId) {
+    setDishStatus("Select a dish before deleting.", true);
+    return;
+  }
+  const dishName = elements.dishName ? elements.dishName.value || state.editingDishId : state.editingDishId;
+  const confirmed = window.confirm(`Delete ${dishName}? This cannot be undone.`);
+  if (!confirmed) return;
+
+  const userId = state.currentUser.id;
+  const url = `/api/users/${userId}/dishes/${state.editingDishId}`;
+  try {
+    const res = await fetch(url, { method: "DELETE" });
+    if (!res.ok && res.status !== 204) {
+      const info = await res.json().catch(() => ({ error: "Unable to delete" }));
+      throw new Error(info.error || "Unable to delete dish.");
+    }
+    setDishStatus("Dish deleted.");
+    await selectUser(userId);
+    resetDishForm();
+  } catch (err) {
+    console.error("Failed to delete dish", err);
+    setDishStatus(err.message || "Unable to delete dish.", true);
+  }
 }
 
 async function handleDishSubmit(event) {
@@ -195,12 +628,9 @@ async function handleDishSubmit(event) {
   if (!state.currentUser) return;
 
   const name = elements.dishName.value.trim();
-  const mealTypes = [elements.mealBreakfast, elements.mealLunch, elements.mealDinner]
-    .filter((input) => input.checked)
-    .map((input) => input.value);
+  const mealTypes = getSelectedMealTypes();
   const notes = elements.dishNotes.value.trim();
-  const metaText = elements.dishMetadata.value.trim();
-  let metadata;
+  const foodGroups = getFoodGroupsPayload();
   if (!name) {
     setDishStatus("Name is required", true);
     return;
@@ -209,18 +639,9 @@ async function handleDishSubmit(event) {
     setDishStatus("Choose at least one meal type", true);
     return;
   }
-  if (metaText) {
-    try {
-      metadata = JSON.parse(metaText);
-    } catch (err) {
-      setDishStatus("Metadata must be valid JSON", true);
-      return;
-    }
-  }
 
-  const payload = { name, mealTypes };
+  const payload = { name, mealTypes, foodGroups };
   if (notes) payload.notes = notes;
-  if (metadata) payload.metadata = metadata;
 
   const userId = state.currentUser.id;
   let url;
@@ -247,6 +668,12 @@ async function handleDishSubmit(event) {
 
   setDishStatus("Saved", false);
   await selectUser(userId);
+}
+
+function setUserStatus(message, isError) {
+  if (!elements.userStatus) return;
+  elements.userStatus.textContent = message || "";
+  elements.userStatus.classList.toggle("error", Boolean(isError));
 }
 
 function setDishStatus(message, isError) {
