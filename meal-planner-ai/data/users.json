@@ -247,9 +247,14 @@
           "days": []
         }
       ],
-      "selections": {},
+      "selections": {
+        "2025-11-08": {
+          "breakfast": "smoothie",
+          "lunch": "pizzeria-leopold"
+        }
+      },
       "suggestions": {
-        "generatedAt": "2025-11-08T08:23:52.961Z",
+        "generatedAt": "2025-11-08T08:40:46.684Z",
         "startDate": "2025-11-08",
         "days": 1,
         "plan": [
@@ -268,13 +273,13 @@
                 "reason": "Planned for Saturday."
               },
               "dinner": {
-                "dishId": "steak",
-                "dishName": "Chicken Pasta",
+                "dishId": "chicken-fries",
+                "dishName": "Chicken + Fries",
                 "reason": "No day selected; showing unscheduled dish."
               },
               "supper": {
-                "dishId": "steak-fries-asparagus",
-                "dishName": "Steak + Fries + Asparagus",
+                "dishId": "burger-fries",
+                "dishName": "Burger + Fries",
                 "reason": "No day selected; showing unscheduled dish."
               }
             },
@@ -381,7 +386,7 @@
       ],
       "selections": {},
       "suggestions": {
-        "generatedAt": "2025-11-08T08:23:57.229Z",
+        "generatedAt": "2025-11-08T08:36:03.235Z",
         "startDate": "2025-11-08",
         "days": 1,
         "plan": [
@@ -395,13 +400,13 @@
                 "reason": "No day selected; showing unscheduled dish."
               },
               "lunch": {
-                "dishId": "wrap",
-                "dishName": "Turkey Wrap",
+                "dishId": "chicken-salad",
+                "dishName": "Chicken Salad",
                 "reason": "No day selected; showing unscheduled dish."
               },
               "dinner": {
-                "dishId": "salmon",
-                "dishName": "Salmon & Quinoa",
+                "dishId": "stir-fry",
+                "dishName": "Tofu Stir Fry",
                 "reason": "No day selected; showing unscheduled dish."
               }
             },

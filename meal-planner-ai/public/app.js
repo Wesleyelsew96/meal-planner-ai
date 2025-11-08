@@ -831,7 +831,6 @@ function renderSuggestions() {
     elements.suggestions.innerHTML = "<p>No suggestions yet. Click Suggest to generate a plan.</p>";
     return;
   }
-  const selections = state.currentUser.selections || {};
 
   elements.suggestions.innerHTML = "";
   suggestion.plan.forEach((day) => {
@@ -862,53 +861,11 @@ function renderSuggestions() {
         labelWrapper.appendChild(note);
       }
       row.appendChild(labelWrapper);
-
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "secondary";
-      const selectedId = selections[day.date]?.[meal];
-
-      if (entry && entry.dishId) {
-        if (selectedId === entry.dishId) {
-          btn.textContent = "Selected";
-          btn.disabled = true;
-          const selectedLabel = document.createElement("span");
-          selectedLabel.className = "selected";
-          selectedLabel.textContent = "(selected)";
-          labelWrapper.appendChild(selectedLabel);
-        } else {
-          btn.textContent = "Choose";
-          btn.addEventListener("click", () => selectSuggestion(day.date, meal, entry.dishId));
-        }
-      } else {
-        btn.textContent = "No dish";
-        btn.disabled = true;
-      }
-
-      row.appendChild(btn);
       card.appendChild(row);
     });
 
     elements.suggestions.appendChild(card);
   });
-}
-
-async function selectSuggestion(date, meal, dishId) {
-  if (!state.currentUser || !dishId) return;
-  const userId = state.currentUser.id;
-  const res = await fetch(getApiUrl(`/api/users/${userId}/selection`), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ date, meal, dishId }),
-  });
-  if (!res.ok) {
-    alert("Unable to save selection");
-    return;
-  }
-  if (!state.currentUser.selections) state.currentUser.selections = {};
-  if (!state.currentUser.selections[date]) state.currentUser.selections[date] = {};
-  state.currentUser.selections[date][meal] = dishId;
-  renderSuggestions();
 }
 
 init().catch((err) => {

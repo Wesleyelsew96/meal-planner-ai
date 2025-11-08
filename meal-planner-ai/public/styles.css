@@ -333,11 +333,6 @@ button.danger:hover {
   margin-bottom: 0;
 }
 
-.suggestion-row button {
-  padding: 0.35rem 0.8rem;
-  font-size: 0.85rem;
-}
-
 .suggestion-label {
   display: flex;
   flex-direction: column;
