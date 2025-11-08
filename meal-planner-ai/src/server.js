@@ -24,6 +24,8 @@ const MEAL_SETS = {
   3: ["breakfast", "lunch", "dinner"],
   4: ["breakfast", "lunch", "dinner", "supper"],
 };
+const HEURISTIC_KEYS = ["weekday", "avoidDuplicates", "unscheduled", "borrow"];
+const DEFAULT_HEURISTICS = HEURISTIC_KEYS.slice();
 
 function clampMealsPerDay(value) {
   const num = Number(value);
@@ -44,6 +46,25 @@ function clampSuggestionDays(value) {
   if (n < 1) return 1;
   if (n > 7) return 7;
   return Math.round(n);
+}
+
+function sanitizeHeuristicsOrder(order) {
+  if (!Array.isArray(order)) return DEFAULT_HEURISTICS.slice();
+  const seen = new Set();
+  const sanitized = [];
+  order.forEach((key) => {
+    if (HEURISTIC_KEYS.includes(key) && !seen.has(key)) {
+      seen.add(key);
+      sanitized.push(key);
+    }
+  });
+  HEURISTIC_KEYS.forEach((key) => {
+    if (!seen.has(key)) {
+      seen.add(key);
+      sanitized.push(key);
+    }
+  });
+  return sanitized;
 }
 
 function formatIsoDate(date) {
@@ -124,53 +145,124 @@ function normalizeDish(dish) {
   return normalized;
 }
 
-function chooseDishForMeal(user, meal, dayKey) {
-  const dishes = (user?.dishes || []).filter(
-    (dish) => Array.isArray(dish.mealTypes) && dish.mealTypes.includes(meal)
-  );
+function getDishIngredients(dish) {
+  const groups = dish && dish.foodGroups && typeof dish.foodGroups === "object" ? dish.foodGroups : {};
+  const ingredients = new Set();
+  FOOD_GROUP_KEYS.forEach((key) => {
+    const list = groups[key];
+    if (Array.isArray(list)) {
+      list.forEach((item) => {
+        const value = String(item || "").trim().toLowerCase();
+        if (value) ingredients.add(value);
+      });
+    }
+  });
+  return Array.from(ingredients);
+}
+
+function isDishUnique(ingredients, usedIngredients) {
+  if (!ingredients || ingredients.length === 0) return true;
+  return !ingredients.some((ing) => usedIngredients.has(ing));
+}
+
+function pickDishWithPreference(candidates, preferUnique, usedIngredients) {
+  if (!preferUnique) {
+    const choice = pickRandom(candidates);
+    return choice ? { dish: choice, unique: true } : null;
+  }
+  const uniqueOnly = candidates.filter((dish) => isDishUnique(dish._ingredients, usedIngredients));
+  if (uniqueOnly.length) {
+    return { dish: pickRandom(uniqueOnly), unique: true };
+  }
+  const fallback = pickRandom(candidates);
+  return fallback ? { dish: fallback, unique: false } : null;
+}
+
+function chooseDishForMeal(user, meal, dayKey, heuristics, usedIngredients) {
+  const dishes = (user?.dishes || [])
+    .filter((dish) => Array.isArray(dish.mealTypes) && dish.mealTypes.includes(meal))
+    .map((dish) => ({ ...dish, _ingredients: getDishIngredients(dish) }));
+
   if (dishes.length === 0) {
     return {
       dishId: null,
       dishName: null,
       reason: "No recommendation: no dishes entered for this meal type.",
+      ingredients: [],
     };
   }
 
-  const scheduled = dishes.filter((dish) => Array.isArray(dish.days) && dish.days.includes(dayKey));
-  if (scheduled.length) {
-    const chosen = pickRandom(scheduled);
+  let preferUnique = false;
+
+  const pools = {
+    weekday: dishes.filter((dish) => Array.isArray(dish.days) && dish.days.includes(dayKey)),
+    unscheduled: dishes.filter((dish) => !Array.isArray(dish.days) || dish.days.length === 0),
+    borrow: dishes,
+  };
+
+  for (const step of heuristics) {
+    if (step === "avoidDuplicates") {
+      preferUnique = true;
+      continue;
+    }
+    let pool;
+    let reasonBase;
+    if (step === "weekday") {
+      pool = pools.weekday;
+      reasonBase = `Planned for ${WEEK_DAY_LABELS[dayKey] || capitalize(dayKey)}.`;
+    } else if (step === "unscheduled") {
+      pool = pools.unscheduled;
+      reasonBase = "No day selected; showing unscheduled dish.";
+    } else if (step === "borrow") {
+      pool = pools.borrow;
+      reasonBase = "Borrowed from another day.";
+    } else {
+      continue;
+    }
+
+    if (!pool || pool.length === 0) continue;
+
+    const result = pickDishWithPreference(pool, preferUnique, usedIngredients);
+    if (!result) continue;
+
+    const note = preferUnique && !result.unique
+      ? `${reasonBase} (duplicate ingredients unavoidable).`
+      : reasonBase;
     return {
-      dishId: chosen.id,
-      dishName: chosen.name,
-      reason: `Planned for ${WEEK_DAY_LABELS[dayKey] || capitalize(dayKey)}.`,
+      dishId: result.dish.id,
+      dishName: result.dish.name,
+      reason: note,
+      ingredients: result.dish._ingredients,
     };
   }
 
-  const unscheduled = dishes.filter((dish) => !Array.isArray(dish.days) || dish.days.length === 0);
-  if (unscheduled.length) {
-    const chosen = pickRandom(unscheduled);
+  const fallback = pickDishWithPreference(dishes, false, usedIngredients);
+  if (fallback) {
     return {
-      dishId: chosen.id,
-      dishName: chosen.name,
-      reason: "No day selected; showing unscheduled dish.",
+      dishId: fallback.dish.id,
+      dishName: fallback.dish.name,
+      reason: "No priority matched; showing fallback dish.",
+      ingredients: fallback.dish._ingredients,
     };
   }
 
-  const fallback = pickRandom(dishes);
   return {
-    dishId: fallback.id,
-    dishName: fallback.name,
-    reason: "Borrowed from another day.",
+    dishId: null,
+    dishName: null,
+    reason: "No recommendation available.",
+    ingredients: [],
   };
 }
 
 function buildSuggestionPlan(user, startDate, daysCount) {
   const meals = getMealsForUser(user);
+  const heuristics = sanitizeHeuristicsOrder(user.heuristics);
   const plan = [];
   for (let i = 0; i < daysCount; i += 1) {
     const date = new Date(startDate.getTime());
     date.setUTCDate(startDate.getUTCDate() + i);
     const dayKey = getWeekdayKey(date);
+    const usedIngredients = new Set();
     const entry = {
       date: formatIsoDate(date),
       weekday: WEEK_DAY_LABELS[dayKey] || capitalize(dayKey),
@@ -178,7 +270,15 @@ function buildSuggestionPlan(user, startDate, daysCount) {
       mealOrder: meals.slice(),
     };
     meals.forEach((meal) => {
-      entry.meals[meal] = chooseDishForMeal(user, meal, dayKey);
+      const selection = chooseDishForMeal(user, meal, dayKey, heuristics, usedIngredients);
+      entry.meals[meal] = {
+        dishId: selection.dishId,
+        dishName: selection.dishName,
+        reason: selection.reason,
+      };
+      if (selection.dishId && Array.isArray(selection.ingredients)) {
+        selection.ingredients.forEach((ing) => usedIngredients.add(ing));
+      }
     });
     plan.push(entry);
   }
@@ -206,6 +306,7 @@ function normalizeUser(user) {
   } else {
     if (!Array.isArray(normalized.suggestions.plan)) normalized.suggestions.plan = [];
   }
+  normalized.heuristics = sanitizeHeuristicsOrder(normalized.heuristics);
   return normalized;
 }
 
@@ -215,7 +316,15 @@ function readUsers() {
     const data = JSON.parse(raw);
     if (!data || typeof data !== "object") return { users: [] };
     if (!Array.isArray(data.users)) data.users = [];
-    data.users = data.users.map((user, index) => normalizeUser(user) || { id: `user-${index}`, name: "", mealsPerDay: DEFAULT_MEALS_PER_DAY, dishes: [], selections: {} });
+    data.users = data.users.map((user, index) => normalizeUser(user) || {
+      id: `user-${index}`,
+      name: "",
+      mealsPerDay: DEFAULT_MEALS_PER_DAY,
+      dishes: [],
+      selections: {},
+      suggestions: { generatedAt: null, startDate: null, days: 0, plan: [] },
+      heuristics: DEFAULT_HEURISTICS.slice(),
+    });
     return data;
   } catch (err) {
     return { users: [] };
@@ -330,6 +439,7 @@ async function handleCreateUser(req, res) {
     dishes: [],
     selections: {},
     suggestions: { generatedAt: null, startDate: null, days: 0, plan: [] },
+    heuristics: sanitizeHeuristicsOrder(payload.heuristics),
   });
   store.users.push(newUser);
   writeUsers(store);
@@ -358,6 +468,9 @@ async function handleUpdateUser(req, res, userId) {
   }
   if (Object.prototype.hasOwnProperty.call(payload, "mealsPerDay")) {
     user.mealsPerDay = clampMealsPerDay(payload.mealsPerDay);
+  }
+  if (Object.prototype.hasOwnProperty.call(payload, "heuristics")) {
+    user.heuristics = sanitizeHeuristicsOrder(payload.heuristics);
   }
   writeUsers(store);
   sendJson(res, 200, user);
@@ -477,6 +590,9 @@ async function handleGenerateSuggestions(req, res, userId) {
   if (!user) {
     sendJson(res, 404, { error: "User not found" });
     return;
+  }
+  if (payload && Array.isArray(payload.heuristics)) {
+    user.heuristics = sanitizeHeuristicsOrder(payload.heuristics);
   }
   const days = clampSuggestionDays(payload?.days);
   const start = payload?.startDate ? new Date(`${payload.startDate}T00:00:00Z`) : new Date();

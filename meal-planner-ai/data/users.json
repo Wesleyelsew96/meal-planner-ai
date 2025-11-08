@@ -106,9 +106,13 @@
             "dinner"
           ],
           "foodGroups": {
-            "meat": [],
+            "meat": [
+              "Chicken"
+            ],
             "produce": [],
-            "starch": [],
+            "starch": [
+              "Rice"
+            ],
             "dairy": []
           },
           "days": []
@@ -146,9 +150,13 @@
             "dinner"
           ],
           "foodGroups": {
-            "meat": [],
+            "meat": [
+              "Chicken"
+            ],
             "produce": [],
-            "starch": [],
+            "starch": [
+              "Fries"
+            ],
             "dairy": []
           },
           "days": []
@@ -160,9 +168,13 @@
             "supper"
           ],
           "foodGroups": {
-            "meat": [],
+            "meat": [
+              "Burger"
+            ],
             "produce": [],
-            "starch": [],
+            "starch": [
+              "Fries"
+            ],
             "dairy": []
           },
           "days": []
@@ -174,9 +186,13 @@
             "supper"
           ],
           "foodGroups": {
-            "meat": [],
+            "meat": [
+              "Steak"
+            ],
             "produce": [],
-            "starch": [],
+            "starch": [
+              "Fries"
+            ],
             "dairy": []
           },
           "days": []
@@ -241,7 +257,9 @@
               "Carnitas"
             ],
             "produce": [],
-            "starch": [],
+            "starch": [
+              "Rice"
+            ],
             "dairy": []
           },
           "days": []
@@ -254,7 +272,7 @@
         }
       },
       "suggestions": {
-        "generatedAt": "2025-11-08T08:40:46.684Z",
+        "generatedAt": "2025-11-08T12:52:29.772Z",
         "startDate": "2025-11-08",
         "days": 1,
         "plan": [
@@ -273,13 +291,13 @@
                 "reason": "Planned for Saturday."
               },
               "dinner": {
-                "dishId": "chicken-fries",
-                "dishName": "Chicken + Fries",
+                "dishId": "veggie-pasta",
+                "dishName": "Chicken + Rice",
                 "reason": "No day selected; showing unscheduled dish."
               },
               "supper": {
-                "dishId": "burger-fries",
-                "dishName": "Burger + Fries",
+                "dishId": "pork-fries-green-beans",
+                "dishName": "Pork + Fries + Green Beans",
                 "reason": "No day selected; showing unscheduled dish."
               }
             },
@@ -291,7 +309,13 @@
             ]
           }
         ]
-      }
+      },
+      "heuristics": [
+        "weekday",
+        "avoidDuplicates",
+        "unscheduled",
+        "borrow"
+      ]
     },
     {
       "id": "wesley",
@@ -417,7 +441,13 @@
             ]
           }
         ]
-      }
+      },
+      "heuristics": [
+        "weekday",
+        "avoidDuplicates",
+        "unscheduled",
+        "borrow"
+      ]
     }
   ]
 }

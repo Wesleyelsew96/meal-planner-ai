@@ -15,7 +15,20 @@ header {
   padding: 1.5rem 2rem;
 }
 
-header h1 {
+.branding h1,
+.branding .tagline {
+  color: #f8fafc;
+}
+
+.header-inner {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.branding h1 {
   margin: 0;
   font-size: 2rem;
 }
@@ -24,6 +37,62 @@ header h1 {
   margin: 0.3rem 0 0;
   font-size: 0.95rem;
   opacity: 0.85;
+}
+
+.user-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  align-items: flex-end;
+}
+
+.user-panel .user-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 160px;
+}
+
+.user-panel .user-field.summary {
+  flex-basis: 100%;
+}
+
+.user-panel .user-field.buttons {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.user-panel label {
+  color: #f8fafc;
+  font-size: 0.85rem;
+  margin-bottom: 0;
+}
+
+.user-panel input,
+.user-panel select {
+  padding: 0.4rem 0.5rem;
+  border-radius: 6px;
+  border: none;
+}
+
+.user-panel button {
+  padding: 0.4rem 0.75rem;
+}
+
+.user-panel .user-summary {
+  color: #f8fafc;
+  margin: 0;
+}
+
+.user-panel .status {
+  color: #f8fafc;
+  margin: 0.25rem 0 0;
 }
 
 main {
@@ -344,11 +413,6 @@ button.danger:hover {
   color: #64748b;
 }
 
-.suggestion-row .selected {
-  font-weight: 600;
-  color: #0f766e;
-}
-
 .status {
   min-height: 1.2rem;
   font-size: 0.85rem;
@@ -374,4 +438,74 @@ footer {
   main {
     grid-template-columns: 1fr;
   }
+}
+.heuristics-panel .hint {
+  margin-top: 0;
+  color: #475569;
+}
+
+.heuristics-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-bottom: 0.75rem;
+}
+
+.heuristic-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.heuristic-card {
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 0.75rem;
+  background: #f8fafc;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.heuristic-card .heuristic-copy {
+  flex: 1;
+}
+
+.heuristic-card h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+}
+
+.heuristic-card p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.heuristic-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.heuristic-controls button {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  border-radius: 6px;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.heuristic-controls button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.heuristic-item {
+  margin: 0;
 }

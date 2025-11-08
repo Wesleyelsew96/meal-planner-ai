@@ -8,21 +8,21 @@
 </head>
 <body>
   <header>
-    <h1>Meal Planner AI</h1>
-    <p class="tagline">Suggest meals, capture favorites, and adjust your rotation without the CLI.</p>
-  </header>
-
-  <main>
-    <section class="panel">
-      <h2>User</h2>
-      <label for="user-select">Select user</label>
-      <select id="user-select"></select>
-      <form id="user-form" class="user-form">
-        <div class="field">
-          <label for="user-name">Name</label>
+    <div class="header-inner">
+      <div class="branding">
+        <h1>Meal Planner AI</h1>
+        <p class="tagline">Suggest meals, capture favorites, and adjust your rotation without the CLI.</p>
+      </div>
+      <form id="user-form" class="user-panel">
+        <div class="user-field">
+          <label for="user-select">Current User</label>
+          <select id="user-select"></select>
+        </div>
+        <div class="user-field">
+          <label for="user-name">Edit Name</label>
           <input id="user-name" type="text" placeholder="e.g., Taylor" />
         </div>
-        <div class="field">
+        <div class="user-field">
           <label for="user-meals">Meals per day</label>
           <select id="user-meals">
             <option value="2">2 meals</option>
@@ -30,14 +30,26 @@
             <option value="4">4 meals</option>
           </select>
         </div>
-        <div class="user-actions">
+        <div class="user-field buttons">
           <button type="button" id="user-create" class="secondary">Add user</button>
-          <button type="submit" id="user-save" class="primary">Save changes</button>
-          <button type="button" id="user-delete" class="danger">Delete user</button>
+          <button type="submit" id="user-save" class="primary">Save</button>
+          <button type="button" id="user-delete" class="danger">Delete</button>
         </div>
-        <p id="user-status" class="status" aria-live="polite"></p>
+        <div class="user-field summary">
+          <div id="user-summary" class="user-summary"></div>
+          <p id="user-status" class="status" aria-live="polite"></p>
+        </div>
       </form>
-      <div id="user-summary" class="user-summary"></div>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel heuristics-panel">
+      <div class="heuristics-header">
+        <h2>Suggestion Heuristics</h2>
+        <p class="hint">Set the priority order. Move cards up or down to adjust.</p>
+      </div>
+      <ol id="heuristic-list" class="heuristic-list" aria-live="polite"></ol>
     </section>
 
     <section class="panel" id="dish-panel">
