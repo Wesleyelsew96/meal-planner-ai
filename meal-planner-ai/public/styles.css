@@ -288,6 +288,27 @@ button.danger:hover {
   align-items: flex-end;
   flex-wrap: wrap;
 }
+.suggestion-controls .field {
+  width: auto;
+  min-width: 120px;
+  margin-bottom: 0;
+}
+.suggestion-controls .button-field {
+  margin-bottom: 0;
+}
+.suggestion-days-field input {
+  width: 4rem;
+}
+
+#suggestion-form {
+  margin-bottom: 0.75rem;
+}
+
+#suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
 
 .suggestion-card {
   border: 1px solid #cbd5e1;
@@ -315,6 +336,17 @@ button.danger:hover {
 .suggestion-row button {
   padding: 0.35rem 0.8rem;
   font-size: 0.85rem;
+}
+
+.suggestion-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.suggestion-label small {
+  font-size: 0.78rem;
+  color: #64748b;
 }
 
 .suggestion-row .selected {

@@ -9,7 +9,21 @@ const DEFAULT_MEALS_PER_DAY = 3;
 const MEAL_MIN = 2;
 const MEAL_MAX = 4;
 const FOOD_GROUP_KEYS = ["meat", "produce", "starch", "dairy"];
-const WEEK_DAY_KEYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+const WEEK_DAY_KEYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+const WEEK_DAY_LABELS = {
+  sunday: "Sunday",
+  monday: "Monday",
+  tuesday: "Tuesday",
+  wednesday: "Wednesday",
+  thursday: "Thursday",
+  friday: "Friday",
+  saturday: "Saturday",
+};
+const MEAL_SETS = {
+  2: ["breakfast", "dinner"],
+  3: ["breakfast", "lunch", "dinner"],
+  4: ["breakfast", "lunch", "dinner", "supper"],
+};
 
 function clampMealsPerDay(value) {
   const num = Number(value);
@@ -17,6 +31,41 @@ function clampMealsPerDay(value) {
   if (num < MEAL_MIN) return MEAL_MIN;
   if (num > MEAL_MAX) return MEAL_MAX;
   return num;
+}
+
+function getMealsForUser(user) {
+  const mealsPerDay = clampMealsPerDay(user?.mealsPerDay);
+  return (MEAL_SETS[mealsPerDay] || MEAL_SETS[DEFAULT_MEALS_PER_DAY]).slice();
+}
+
+function clampSuggestionDays(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 1;
+  if (n < 1) return 1;
+  if (n > 7) return 7;
+  return Math.round(n);
+}
+
+function formatIsoDate(date) {
+  const y = date.getUTCFullYear();
+  const m = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(date.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function getWeekdayKey(date) {
+  return WEEK_DAY_KEYS[date.getUTCDay()];
+}
+
+function capitalize(word) {
+  if (!word) return "";
+  return word.charAt(0).toUpperCase() + word.slice(1);
+}
+
+function pickRandom(list) {
+  if (!Array.isArray(list) || list.length === 0) return null;
+  const idx = Math.floor(Math.random() * list.length);
+  return list[idx];
 }
 
 function slugify(value) {
@@ -75,6 +124,67 @@ function normalizeDish(dish) {
   return normalized;
 }
 
+function chooseDishForMeal(user, meal, dayKey) {
+  const dishes = (user?.dishes || []).filter(
+    (dish) => Array.isArray(dish.mealTypes) && dish.mealTypes.includes(meal)
+  );
+  if (dishes.length === 0) {
+    return {
+      dishId: null,
+      dishName: null,
+      reason: "No recommendation: no dishes entered for this meal type.",
+    };
+  }
+
+  const scheduled = dishes.filter((dish) => Array.isArray(dish.days) && dish.days.includes(dayKey));
+  if (scheduled.length) {
+    const chosen = pickRandom(scheduled);
+    return {
+      dishId: chosen.id,
+      dishName: chosen.name,
+      reason: `Planned for ${WEEK_DAY_LABELS[dayKey] || capitalize(dayKey)}.`,
+    };
+  }
+
+  const unscheduled = dishes.filter((dish) => !Array.isArray(dish.days) || dish.days.length === 0);
+  if (unscheduled.length) {
+    const chosen = pickRandom(unscheduled);
+    return {
+      dishId: chosen.id,
+      dishName: chosen.name,
+      reason: "No day selected; showing unscheduled dish.",
+    };
+  }
+
+  const fallback = pickRandom(dishes);
+  return {
+    dishId: fallback.id,
+    dishName: fallback.name,
+    reason: "Borrowed from another day.",
+  };
+}
+
+function buildSuggestionPlan(user, startDate, daysCount) {
+  const meals = getMealsForUser(user);
+  const plan = [];
+  for (let i = 0; i < daysCount; i += 1) {
+    const date = new Date(startDate.getTime());
+    date.setUTCDate(startDate.getUTCDate() + i);
+    const dayKey = getWeekdayKey(date);
+    const entry = {
+      date: formatIsoDate(date),
+      weekday: WEEK_DAY_LABELS[dayKey] || capitalize(dayKey),
+      meals: {},
+      mealOrder: meals.slice(),
+    };
+    meals.forEach((meal) => {
+      entry.meals[meal] = chooseDishForMeal(user, meal, dayKey);
+    });
+    plan.push(entry);
+  }
+  return plan;
+}
+
 function normalizeUser(user) {
   if (!user || typeof user !== "object") return null;
   const normalized = { ...user };
@@ -90,6 +200,11 @@ function normalizeUser(user) {
   }
   if (!normalized.selections || typeof normalized.selections !== "object") {
     normalized.selections = {};
+  }
+  if (!normalized.suggestions || typeof normalized.suggestions !== "object") {
+    normalized.suggestions = { generatedAt: null, startDate: null, days: 0, plan: [] };
+  } else {
+    if (!Array.isArray(normalized.suggestions.plan)) normalized.suggestions.plan = [];
   }
   return normalized;
 }
@@ -214,6 +329,7 @@ async function handleCreateUser(req, res) {
     mealsPerDay,
     dishes: [],
     selections: {},
+    suggestions: { generatedAt: null, startDate: null, days: 0, plan: [] },
   });
   store.users.push(newUser);
   writeUsers(store);
@@ -354,6 +470,29 @@ function handleDeleteDish(req, res, userId, dishId) {
   res.end();
 }
 
+async function handleGenerateSuggestions(req, res, userId) {
+  const payload = await readBody(req);
+  const store = readUsers();
+  const user = store.users.find((u) => u.id === userId);
+  if (!user) {
+    sendJson(res, 404, { error: "User not found" });
+    return;
+  }
+  const days = clampSuggestionDays(payload?.days);
+  const start = payload?.startDate ? new Date(`${payload.startDate}T00:00:00Z`) : new Date();
+  const startDate = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()));
+  const plan = buildSuggestionPlan(user, startDate, days);
+  const suggestion = {
+    generatedAt: new Date().toISOString(),
+    startDate: formatIsoDate(startDate),
+    days,
+    plan,
+  };
+  user.suggestions = suggestion;
+  writeUsers(store);
+  sendJson(res, 200, suggestion);
+}
+
 async function handleSelection(req, res, userId) {
   const payload = await readBody(req);
   const { date, meal, dishId } = payload || {};
@@ -404,6 +543,9 @@ function handleApi(req, res, parsedUrl) {
   }
   if (req.method === "DELETE" && parts.length === 5 && parts[0] === "api" && parts[1] === "users" && parts[3] === "dishes") {
     return handleDeleteDish(req, res, parts[2], parts[4]);
+  }
+  if (req.method === "POST" && parts.length === 4 && parts[0] === "api" && parts[1] === "users" && parts[3] === "suggestions") {
+    return handleGenerateSuggestions(req, res, parts[2]);
   }
   if (req.method === "POST" && parts.length === 4 && parts[0] === "api" && parts[1] === "users" && parts[3] === "selection") {
     return handleSelection(req, res, parts[2]);

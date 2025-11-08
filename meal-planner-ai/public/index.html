@@ -81,16 +81,19 @@
     <section class="panel">
       <h2>Suggestions</h2>
       <form id="suggestion-form" class="suggestion-controls">
-        <div class="field">
+        <div class="field suggestion-date-field">
           <label for="suggestion-date">Start date</label>
           <input id="suggestion-date" type="date" />
         </div>
-        <div class="field">
+        <div class="field suggestion-days-field">
           <label for="suggestion-days">Days</label>
-          <input id="suggestion-days" type="number" min="1" max="30" value="3" />
+          <input id="suggestion-days" type="number" min="1" max="7" value="1" />
         </div>
-        <button type="submit" class="primary">Refresh</button>
+        <div class="field button-field">
+          <button type="submit" class="primary">Suggest</button>
+        </div>
       </form>
+      <p id="suggestion-status" class="status" aria-live="polite"></p>
       <div id="suggestions"></div>
     </section>
   </main>

@@ -79,6 +79,7 @@ const elements = {
   dishStatus: document.getElementById("dish-form-status"),
   dishReset: document.getElementById("dish-reset"),
   dishDelete: document.getElementById("dish-delete"),
+  suggestionStatus: document.getElementById("suggestion-status"),
   suggestionForm: document.getElementById("suggestion-form"),
   suggestionDate: document.getElementById("suggestion-date"),
   suggestionDays: document.getElementById("suggestion-days"),
@@ -229,6 +230,35 @@ function getDisplayMeals(user = state.currentUser) {
   return meals.slice();
 }
 
+function ensureSuggestionStructure(raw) {
+  if (!raw || typeof raw !== "object") {
+    return { generatedAt: null, startDate: null, days: 0, plan: [] };
+  }
+  if (!Array.isArray(raw.plan)) raw.plan = [];
+  return raw;
+}
+
+function formatMeal(meal) {
+  if (!meal) return "";
+  return meal.charAt(0).toUpperCase() + meal.slice(1);
+}
+
+function clampSuggestionDays(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 1;
+  if (n < 1) return 1;
+  if (n > 7) return 7;
+  return Math.round(n);
+}
+
+function getApiUrl(path) {
+  if (typeof window === "undefined") return path;
+  if (window.location.protocol === "file:" || !window.location.origin || window.location.origin === "null") {
+    return `http://localhost:3000${path}`;
+  }
+  return path;
+}
+
 function setDishDays(days) {
   state.dishDays = Array.isArray(days)
     ? days
@@ -331,7 +361,7 @@ function bindEvents() {
   if (elements.suggestionForm) {
     elements.suggestionForm.addEventListener("submit", (event) => {
       event.preventDefault();
-      renderSuggestions();
+      handleSuggestionSubmit();
     });
   }
 }
@@ -344,7 +374,7 @@ function setDefaultDate() {
 
 async function loadUsers(preferredId) {
   try {
-    const res = await fetch("/api/users");
+    const res = await fetch(getApiUrl("/api/users"));
     if (!res.ok) throw new Error(`Failed to load users (${res.status})`);
     const users = await res.json();
     state.users = Array.isArray(users) ? users : [];
@@ -405,6 +435,7 @@ function clearCurrentUser() {
   renderMealTypeOptions([]);
   state.dishFoodGroups = getDefaultFoodGroups();
   renderFoodGroupsEditor();
+  setSuggestionStatus("");
 }
 
 function fillUserForm() {
@@ -426,7 +457,7 @@ function fillUserForm() {
 }
 
 async function selectUser(userId) {
-  const res = await fetch(`/api/users/${userId}`);
+  const res = await fetch(getApiUrl(`/api/users/${userId}`));
   if (!res.ok) {
     elements.userSummary.textContent = "Unable to load user.";
     return;
@@ -435,6 +466,7 @@ async function selectUser(userId) {
   state.currentUser = {
     ...user,
     mealsPerDay: clampMealsPerDay(user.mealsPerDay ?? DEFAULT_MEALS_PER_DAY),
+    suggestions: ensureSuggestionStructure(user.suggestions),
   };
   state.editingDishId = null;
   if (elements.userSelect) {
@@ -446,6 +478,7 @@ async function selectUser(userId) {
   resetDishForm();
   renderSuggestions();
   setUserStatus("");
+  setSuggestionStatus("");
 }
 
 function renderUserSummary() {
@@ -480,7 +513,7 @@ async function handleUserCreate() {
     return;
   }
   try {
-    const res = await fetch("/api/users", {
+    const res = await fetch(getApiUrl("/api/users"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -509,7 +542,7 @@ async function handleUserSave() {
     return;
   }
   try {
-    const res = await fetch(`/api/users/${state.currentUser.id}`, {
+    const res = await fetch(getApiUrl(`/api/users/${state.currentUser.id}`), {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -523,6 +556,7 @@ async function handleUserSave() {
       ...state.currentUser,
       ...updated,
       mealsPerDay: clampMealsPerDay(updated.mealsPerDay ?? payload.mealsPerDay),
+      suggestions: ensureSuggestionStructure(updated.suggestions ?? state.currentUser.suggestions),
     };
     fillUserForm();
     renderUserSummary();
@@ -542,7 +576,7 @@ async function handleUserDelete() {
   const confirmed = window.confirm(`Delete ${state.currentUser.name || state.currentUser.id}?`);
   if (!confirmed) return;
   try {
-    const res = await fetch(`/api/users/${state.currentUser.id}`, {
+    const res = await fetch(getApiUrl(`/api/users/${state.currentUser.id}`), {
       method: "DELETE",
     });
     if (!res.ok && res.status !== 204) {
@@ -665,7 +699,7 @@ async function handleDishDelete() {
   const userId = state.currentUser.id;
   const url = `/api/users/${userId}/dishes/${state.editingDishId}`;
   try {
-    const res = await fetch(url, { method: "DELETE" });
+    const res = await fetch(getApiUrl(url), { method: "DELETE" });
     if (!res.ok && res.status !== 204) {
       const info = await res.json().catch(() => ({ error: "Unable to delete" }));
       throw new Error(info.error || "Unable to delete dish.");
@@ -711,7 +745,7 @@ async function handleDishSubmit(event) {
     method = "POST";
   }
 
-  const res = await fetch(url, {
+  const res = await fetch(getApiUrl(url), {
     method,
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -742,58 +776,115 @@ function setDishStatus(message, isError) {
   }
 }
 
+function setSuggestionStatus(message, isError) {
+  if (!elements.suggestionStatus) return;
+  elements.suggestionStatus.textContent = message || "";
+  elements.suggestionStatus.classList.toggle("error", Boolean(isError));
+}
+
+async function handleSuggestionSubmit() {
+  if (!state.currentUser) {
+    setSuggestionStatus("Select a user first.", true);
+    return;
+  }
+  const days = clampSuggestionDays(elements.suggestionDays?.value);
+  if (elements.suggestionDays) {
+    elements.suggestionDays.value = String(days);
+  }
+  const payload = {
+    startDate: elements.suggestionDate?.value || null,
+    days,
+  };
+
+  try {
+    setSuggestionStatus("Generating suggestions...");
+    const res = await fetch(getApiUrl(`/api/users/${state.currentUser.id}/suggestions`), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const info = await res.json().catch(() => ({}));
+      throw new Error(info.error || "Unable to generate suggestions.");
+    }
+    const suggestion = await res.json();
+    state.currentUser.suggestions = ensureSuggestionStructure(suggestion);
+    renderSuggestions();
+    setSuggestionStatus("Suggestions updated.");
+  } catch (err) {
+    console.error("Failed to generate suggestions", err);
+    const message = err && err.message === "Failed to fetch"
+      ? "Unable to reach the server. Please run `npm start` and try again."
+      : err.message || "Unable to generate suggestions.";
+    setSuggestionStatus(message, true);
+  }
+}
+
 function renderSuggestions() {
   if (!state.currentUser) {
     elements.suggestions.innerHTML = "<p>Select a user to view suggestions.</p>";
     return;
   }
-  const dateValue = elements.suggestionDate.value;
-  const daysValue = parseInt(elements.suggestionDays.value, 10) || 1;
-  const startDate = dateValue ? new Date(`${dateValue}T00:00:00Z`) : new Date();
-
-  const schedule = MealPlannerEngine.suggestDays(state.currentUser, {
-    startDate: new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate())),
-    days: Math.max(1, Math.min(30, daysValue)),
-  });
-
+  const suggestion = ensureSuggestionStructure(state.currentUser.suggestions);
+  state.currentUser.suggestions = suggestion;
+  if (!suggestion.plan.length) {
+    elements.suggestions.innerHTML = "<p>No suggestions yet. Click Suggest to generate a plan.</p>";
+    return;
+  }
   const selections = state.currentUser.selections || {};
 
   elements.suggestions.innerHTML = "";
-  schedule.forEach((day) => {
+  suggestion.plan.forEach((day) => {
     const card = document.createElement("div");
     card.className = "suggestion-card";
     const title = document.createElement("h4");
-    title.textContent = day.date;
+    title.textContent = `${day.weekday || ""} · ${day.date || ""}`;
     card.appendChild(title);
 
-    MealPlannerEngine.MEALS.forEach((meal) => {
+    const meals = Array.isArray(day.mealOrder) ? day.mealOrder : Object.keys(day.meals || {});
+    meals.forEach((meal) => {
+      const entry = day.meals && day.meals[meal];
       const row = document.createElement("div");
       row.className = "suggestion-row";
-      const dishList = day.suggestions[meal];
+
+      const labelWrapper = document.createElement("div");
+      labelWrapper.className = "suggestion-label";
       const label = document.createElement("div");
-      label.textContent = `${meal}: ${dishList.length ? dishList[0].name : "(none)"}`;
-      row.appendChild(label);
+      if (entry && entry.dishId) {
+        label.textContent = `${formatMeal(meal)}: ${entry.dishName || entry.dishId}`;
+      } else {
+        label.textContent = `${formatMeal(meal)}: (no recommendation)`;
+      }
+      labelWrapper.appendChild(label);
+      if (entry && entry.reason) {
+        const note = document.createElement("small");
+        note.textContent = entry.reason;
+        labelWrapper.appendChild(note);
+      }
+      row.appendChild(labelWrapper);
 
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "secondary";
-
       const selectedId = selections[day.date]?.[meal];
-      if (dishList.length && selectedId === dishList[0].id) {
-        btn.textContent = "Selected";
-        btn.disabled = true;
-        const selectedLabel = document.createElement("span");
-        selectedLabel.className = "selected";
-        selectedLabel.textContent = "(selected)";
-        label.appendChild(document.createTextNode(" "));
-        label.appendChild(selectedLabel);
-      } else if (dishList.length) {
-        btn.textContent = "Choose";
-        btn.addEventListener("click", () => selectSuggestion(day.date, meal, dishList[0]));
+
+      if (entry && entry.dishId) {
+        if (selectedId === entry.dishId) {
+          btn.textContent = "Selected";
+          btn.disabled = true;
+          const selectedLabel = document.createElement("span");
+          selectedLabel.className = "selected";
+          selectedLabel.textContent = "(selected)";
+          labelWrapper.appendChild(selectedLabel);
+        } else {
+          btn.textContent = "Choose";
+          btn.addEventListener("click", () => selectSuggestion(day.date, meal, entry.dishId));
+        }
       } else {
         btn.textContent = "No dish";
         btn.disabled = true;
       }
+
       row.appendChild(btn);
       card.appendChild(row);
     });
@@ -802,13 +893,13 @@ function renderSuggestions() {
   });
 }
 
-async function selectSuggestion(date, meal, dish) {
-  if (!state.currentUser) return;
+async function selectSuggestion(date, meal, dishId) {
+  if (!state.currentUser || !dishId) return;
   const userId = state.currentUser.id;
-  const res = await fetch(`/api/users/${userId}/selection`, {
+  const res = await fetch(getApiUrl(`/api/users/${userId}/selection`), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ date, meal, dishId: dish.id }),
+    body: JSON.stringify({ date, meal, dishId }),
   });
   if (!res.ok) {
     alert("Unable to save selection");
@@ -816,7 +907,7 @@ async function selectSuggestion(date, meal, dish) {
   }
   if (!state.currentUser.selections) state.currentUser.selections = {};
   if (!state.currentUser.selections[date]) state.currentUser.selections[date] = {};
-  state.currentUser.selections[date][meal] = dish.id;
+  state.currentUser.selections[date][meal] = dishId;
   renderSuggestions();
 }
 

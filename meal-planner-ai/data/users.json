@@ -207,10 +207,14 @@
               "Al Pastor"
             ],
             "produce": [],
-            "starch": [],
+            "starch": [
+              "Tacos"
+            ],
             "dairy": []
           },
-          "days": []
+          "days": [
+            "tuesday"
+          ]
         },
         {
           "id": "chicken-noodles-asian",
@@ -233,7 +237,9 @@
             "supper"
           ],
           "foodGroups": {
-            "meat": [],
+            "meat": [
+              "Carnitas"
+            ],
             "produce": [],
             "starch": [],
             "dairy": []
@@ -241,7 +247,46 @@
           "days": []
         }
       ],
-      "selections": {}
+      "selections": {},
+      "suggestions": {
+        "generatedAt": "2025-11-08T08:23:52.961Z",
+        "startDate": "2025-11-08",
+        "days": 1,
+        "plan": [
+          {
+            "date": "2025-11-08",
+            "weekday": "Saturday",
+            "meals": {
+              "breakfast": {
+                "dishId": "smoothie",
+                "dishName": "Eggs and Bacon",
+                "reason": "Planned for Saturday."
+              },
+              "lunch": {
+                "dishId": "pizzeria-leopold",
+                "dishName": "Pizzeria Leopold",
+                "reason": "Planned for Saturday."
+              },
+              "dinner": {
+                "dishId": "steak",
+                "dishName": "Chicken Pasta",
+                "reason": "No day selected; showing unscheduled dish."
+              },
+              "supper": {
+                "dishId": "steak-fries-asparagus",
+                "dishName": "Steak + Fries + Asparagus",
+                "reason": "No day selected; showing unscheduled dish."
+              }
+            },
+            "mealOrder": [
+              "breakfast",
+              "lunch",
+              "dinner",
+              "supper"
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "wesley",
@@ -334,7 +379,40 @@
           "days": []
         }
       ],
-      "selections": {}
+      "selections": {},
+      "suggestions": {
+        "generatedAt": "2025-11-08T08:23:57.229Z",
+        "startDate": "2025-11-08",
+        "days": 1,
+        "plan": [
+          {
+            "date": "2025-11-08",
+            "weekday": "Saturday",
+            "meals": {
+              "breakfast": {
+                "dishId": "eggs-bacon",
+                "dishName": "Eggs and Bacon",
+                "reason": "No day selected; showing unscheduled dish."
+              },
+              "lunch": {
+                "dishId": "wrap",
+                "dishName": "Turkey Wrap",
+                "reason": "No day selected; showing unscheduled dish."
+              },
+              "dinner": {
+                "dishId": "salmon",
+                "dishName": "Salmon & Quinoa",
+                "reason": "No day selected; showing unscheduled dish."
+              }
+            },
+            "mealOrder": [
+              "breakfast",
+              "lunch",
+              "dinner"
+            ]
+          }
+        ]
+      }
     }
   ]
 }
