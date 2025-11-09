@@ -65,9 +65,27 @@
           <label for="dish-name">Dish name</label>
           <input id="dish-name" type="text" placeholder="e.g., Veggie Omelette" required />
         </div>
-        <div class="field">
-          <label>Days served</label>
-          <div id="dish-days" class="day-selector"></div>
+        <div class="field frequency-field">
+          <div class="frequency-header">
+            <label>Frequency</label>
+            <div id="frequency-toggle" class="frequency-toggle" role="group" aria-label="Frequency mode">
+              <button type="button" class="frequency-tab active" data-frequency-mode="days" aria-pressed="true">Weekly</button>
+              <button type="button" class="frequency-tab" data-frequency-mode="ratio" aria-pressed="false">X per Y</button>
+            </div>
+          </div>
+          <div id="frequency-days-panel" class="frequency-panel">
+            <div id="dish-days" class="day-selector"></div>
+          </div>
+          <div id="frequency-ratio-panel" class="frequency-panel" hidden>
+            <div class="ratio-row">
+              <span class="ratio-label">1 time every</span>
+              <input id="frequency-ratio-min" type="text" inputmode="numeric" pattern="[0-9]*" aria-label="Minimum days between servings" />
+              <span class="ratio-label">to</span>
+              <input id="frequency-ratio-max" type="text" inputmode="numeric" pattern="[0-9]*" aria-label="Maximum days between servings (optional)" />
+              <span class="ratio-label">days</span>
+            </div>
+            <small class="ratio-hint">Leave max blank for a fixed cadence.</small>
+          </div>
         </div>
         <fieldset class="field">
           <legend>Meal types</legend>

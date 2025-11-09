@@ -193,6 +193,72 @@ fieldset label {
   height: 20px;
 }
 
+.frequency-field {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.frequency-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.frequency-toggle {
+  display: inline-flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.frequency-tab {
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 0.85rem;
+  padding: 0.3rem 0.9rem;
+  border: none;
+  cursor: pointer;
+}
+
+.frequency-tab.active {
+  background: #2563eb;
+  color: #fff;
+}
+
+.frequency-panel[hidden] {
+  display: none;
+}
+
+.ratio-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.ratio-row input {
+  width: 80px;
+  padding: 0.3rem 0.4rem;
+}
+
+.ratio-label {
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.ratio-hint {
+  display: block;
+  margin-top: 0.4rem;
+  color: #64748b;
+}
+
+.dish-column h3 {
+  margin: 0 0 0.5rem;
+}
+
 .actions {
   display: flex;
   gap: 0.75rem;

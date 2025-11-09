@@ -1,6 +1,12 @@
 const DEFAULT_MEAL_MIN = 2;
 const DEFAULT_MEAL_MAX = 4;
 const DEFAULT_MEALS_PER_DAY = 3;
+const FREQUENCY_MODES = {
+  DAYS: "days",
+  RATIO: "ratio",
+};
+const DEFAULT_RATIO_MIN_DAYS = 7;
+const RATIO_DAY_MAX = 31;
 
 const MEAL_SETS = {
   2: ["breakfast", "dinner"],
@@ -23,6 +29,10 @@ const HEURISTIC_REGISTRY = {
   avoidDuplicates: {
     label: "Avoid Duplicate Ingredients",
     description: "Try not to serve the same main ingredient twice in a single day.",
+  },
+  ratioFrequency: {
+    label: "Meet Frequency Target",
+    description: "Prioritize dishes that should repeat every few days.",
   },
   unscheduled: {
     label: "Use Unscheduled Dishes",
@@ -71,12 +81,56 @@ function cloneFoodGroups(source) {
   return target;
 }
 
+function capitalize(word) {
+  if (!word) return "";
+  return word.charAt(0).toUpperCase() + word.slice(1);
+}
+
+function getDefaultFrequencyRatio() {
+  return { minDays: null, maxDays: null };
+}
+
+function clampRatioDayInput(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return null;
+  const rounded = Math.round(num);
+  if (rounded < 1) return 1;
+  if (rounded > RATIO_DAY_MAX) return RATIO_DAY_MAX;
+  return rounded;
+}
+
+function normalizeFrequencyForClient(dish) {
+  const source = dish && dish.frequency;
+  if (source && source.mode === FREQUENCY_MODES.RATIO) {
+    const ratioSource = source.ratio || {};
+    const minDays = clampRatioDayInput(ratioSource.minDays) || DEFAULT_RATIO_MIN_DAYS;
+    let maxDays = clampRatioDayInput(ratioSource.maxDays);
+    if (!maxDays) maxDays = minDays;
+    if (maxDays < minDays) maxDays = minDays;
+    return {
+      mode: FREQUENCY_MODES.RATIO,
+      ratio: { minDays, maxDays },
+    };
+  }
+  const days = source && Array.isArray(source.days) ? source.days : dish?.days;
+  return {
+    mode: FREQUENCY_MODES.DAYS,
+    days: Array.isArray(days)
+      ? days
+        .map((day) => String(day || "").toLowerCase())
+        .filter((day, index, array) => WEEK_DAYS.some((def) => def.key === day) && array.indexOf(day) === index)
+      : [],
+  };
+}
+
 const state = {
   users: [],
   currentUser: null,
   editingDishId: null,
   dishFoodGroups: getDefaultFoodGroups(),
   dishDays: [],
+  frequencyMode: FREQUENCY_MODES.DAYS,
+  frequencyRatio: getDefaultFrequencyRatio(),
   heuristicsOrder: DEFAULT_HEURISTICS.slice(),
 };
 
@@ -94,6 +148,11 @@ const elements = {
   dishId: document.getElementById("dish-id"),
   dishName: document.getElementById("dish-name"),
   dishDays: document.getElementById("dish-days"),
+  frequencyToggle: document.getElementById("frequency-toggle"),
+  frequencyDaysPanel: document.getElementById("frequency-days-panel"),
+  frequencyRatioPanel: document.getElementById("frequency-ratio-panel"),
+  frequencyRatioMin: document.getElementById("frequency-ratio-min"),
+  frequencyRatioMax: document.getElementById("frequency-ratio-max"),
   mealTypeOptions: document.getElementById("meal-type-options"),
   dishNotes: document.getElementById("dish-notes"),
   foodGroups: document.getElementById("food-group-grid"),
@@ -309,6 +368,94 @@ function setDishDays(days) {
     : [];
 }
 
+function formatWeekdayLabel(dayKey) {
+  const found = WEEK_DAYS.find((d) => d.key === dayKey);
+  return found ? found.label : capitalize(dayKey);
+}
+
+function findScheduledConflict(dayKey, mealTypes, excludeId) {
+  if (!state.currentUser || !Array.isArray(mealTypes) || mealTypes.length === 0) return null;
+  const normalizedDay = String(dayKey || "").toLowerCase();
+  const meals = mealTypes.map((meal) => String(meal || "").toLowerCase());
+  for (const dish of state.currentUser.dishes || []) {
+    if (dish.id === excludeId) continue;
+    if (!Array.isArray(dish.mealTypes)) continue;
+    const overlapsMeal = dish.mealTypes.some((meal) => meals.includes(meal));
+    if (!overlapsMeal) continue;
+    const frequency = normalizeFrequencyForClient(dish);
+    if (frequency.mode !== FREQUENCY_MODES.DAYS) continue;
+    if (!frequency.days.includes(normalizedDay)) continue;
+    const meal = dish.mealTypes.find((mt) => meals.includes(mt)) || meals[0];
+    return { dish, meal };
+  }
+  return null;
+}
+
+async function removeDayFromExistingDish(conflict, dayKey) {
+  if (!state.currentUser || !conflict) return;
+  const normalizedDay = String(dayKey || "").toLowerCase();
+  const { dish } = conflict;
+  const frequency = normalizeFrequencyForClient(dish);
+  const updatedDays = frequency.days.filter((day) => day !== normalizedDay);
+  const payload = {
+    frequency: { mode: FREQUENCY_MODES.DAYS, days: updatedDays },
+    days: updatedDays,
+  };
+  const userId = state.currentUser.id;
+  const res = await fetch(getApiUrl(`/api/users/${userId}/dishes/${dish.id}`), {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const info = await res.json().catch(() => ({ error: "Unable to update schedule." }));
+    throw new Error(info.error || "Unable to update schedule.");
+  }
+  dish.frequency = { mode: FREQUENCY_MODES.DAYS, days: updatedDays.slice() };
+  dish.days = updatedDays.slice();
+  renderDishes();
+}
+
+async function handleDayCheckboxToggle(dayKey, isChecked, checkboxEl) {
+  if (!checkboxEl) return;
+  if (state.frequencyMode !== FREQUENCY_MODES.DAYS) {
+    checkboxEl.checked = false;
+    return;
+  }
+  if (!isChecked) {
+    toggleDaySelection(dayKey, false);
+    return;
+  }
+  const mealTypes = getSelectedMealTypes();
+  if (!mealTypes.length) {
+    checkboxEl.checked = false;
+    setDishStatus("Select meal types before choosing days.", true);
+    return;
+  }
+  const conflict = findScheduledConflict(dayKey, mealTypes, state.editingDishId);
+  if (conflict) {
+    const mealLabel = formatMeal(conflict.meal);
+    const weekdayLabel = formatWeekdayLabel(dayKey);
+    const confirmed = window.confirm(
+      `${conflict.dish.name} is already scheduled for ${mealLabel} on ${weekdayLabel}. Replace it with this dish?`,
+    );
+    if (!confirmed) {
+      checkboxEl.checked = false;
+      return;
+    }
+    try {
+      await removeDayFromExistingDish(conflict, dayKey);
+      setDishStatus(`Removed ${weekdayLabel} from ${conflict.dish.name}.`, false);
+    } catch (err) {
+      console.error("Failed to clear existing schedule", err);
+      setDishStatus(err.message || "Unable to update schedule.", true);
+      checkboxEl.checked = false;
+      return;
+    }
+  }
+  toggleDaySelection(dayKey, true);
+}
+
 function renderDayCheckboxes(selectedDays = state.dishDays) {
   if (!elements.dishDays) return;
   setDishDays(selectedDays);
@@ -324,7 +471,10 @@ function renderDayCheckboxes(selectedDays = state.dishDays) {
     checkbox.type = "checkbox";
     checkbox.value = day.key;
     checkbox.checked = selectedSet.has(day.key);
-    checkbox.addEventListener("change", (event) => toggleDaySelection(day.key, event.target.checked));
+    checkbox.addEventListener("change", (event) => {
+      const { checked } = event.target;
+      handleDayCheckboxToggle(day.key, checked, checkbox);
+    });
     wrapper.appendChild(caption);
     wrapper.appendChild(checkbox);
     elements.dishDays.appendChild(wrapper);
@@ -341,6 +491,91 @@ function toggleDaySelection(dayKey, isChecked) {
     existing.delete(day);
   }
   state.dishDays = Array.from(existing);
+}
+
+function renderFrequencyControls() {
+  if (!elements.frequencyDaysPanel || !elements.frequencyRatioPanel) return;
+  const isDaysMode = state.frequencyMode === FREQUENCY_MODES.DAYS;
+  elements.frequencyDaysPanel.hidden = !isDaysMode;
+  elements.frequencyRatioPanel.hidden = isDaysMode;
+  if (isDaysMode) {
+    renderDayCheckboxes(state.dishDays);
+  } else {
+    let minDays = state.frequencyRatio.minDays;
+    if (minDays != null) {
+      minDays = clampRatioDayInput(minDays);
+    }
+    let maxDays = state.frequencyRatio.maxDays;
+    if (maxDays != null) {
+      maxDays = clampRatioDayInput(maxDays);
+    }
+    if (minDays != null && maxDays != null && maxDays < minDays) {
+      maxDays = minDays;
+    }
+    state.frequencyRatio = { minDays, maxDays };
+    if (elements.frequencyRatioMin) {
+      elements.frequencyRatioMin.value = minDays == null ? "" : String(minDays);
+    }
+    if (elements.frequencyRatioMax) {
+      elements.frequencyRatioMax.value = maxDays == null ? "" : String(maxDays);
+    }
+  }
+  if (elements.frequencyToggle) {
+    const buttons = Array.from(elements.frequencyToggle.querySelectorAll("button[data-frequency-mode]"));
+    buttons.forEach((button) => {
+      const mode = button.dataset.frequencyMode;
+      const active = mode === state.frequencyMode;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+  }
+}
+
+function handleFrequencyToggle(event) {
+  const button = event.target.closest("button[data-frequency-mode]");
+  if (!button) return;
+  const mode = button.dataset.frequencyMode;
+  if (mode !== FREQUENCY_MODES.DAYS && mode !== FREQUENCY_MODES.RATIO) return;
+  if (state.frequencyMode === mode) return;
+  state.frequencyMode = mode;
+  renderFrequencyControls();
+}
+
+function handleRatioInputChange() {
+  if (!elements.frequencyRatioMin) return;
+  const rawMin = elements.frequencyRatioMin.value.trim();
+  let minDays = null;
+  if (rawMin !== "") {
+    const parsedMin = clampRatioDayInput(rawMin);
+    if (parsedMin) {
+      minDays = parsedMin;
+      elements.frequencyRatioMin.value = String(parsedMin);
+    } else {
+      elements.frequencyRatioMin.value = "";
+    }
+  } else {
+    elements.frequencyRatioMin.value = "";
+  }
+
+  let maxDays = null;
+  if (elements.frequencyRatioMax) {
+    const rawMax = elements.frequencyRatioMax.value.trim();
+    if (rawMax !== "") {
+      const parsedMax = clampRatioDayInput(rawMax);
+      if (parsedMax) {
+        maxDays = parsedMax;
+      } else {
+        elements.frequencyRatioMax.value = "";
+      }
+    } else {
+      elements.frequencyRatioMax.value = "";
+    }
+    if (minDays != null && maxDays != null && maxDays < minDays) {
+      maxDays = minDays;
+    }
+    elements.frequencyRatioMax.value = maxDays == null ? "" : String(maxDays);
+  }
+  state.frequencyRatio = { minDays, maxDays };
 }
 
 function renderHeuristicList() {
@@ -419,7 +654,7 @@ async function init() {
   bindEvents();
   renderMealTypeOptions();
   renderFoodGroupsEditor();
-  renderDayCheckboxes();
+  renderFrequencyControls();
   renderHeuristicList();
   await loadUsers();
   setDefaultDate();
@@ -471,6 +706,20 @@ function bindEvents() {
 
   if (elements.dishDelete) {
     elements.dishDelete.addEventListener("click", () => handleDishDelete());
+  }
+
+  if (elements.frequencyToggle) {
+    elements.frequencyToggle.addEventListener("click", handleFrequencyToggle);
+  }
+
+  if (elements.frequencyRatioMin) {
+    elements.frequencyRatioMin.addEventListener("input", handleRatioInputChange);
+    elements.frequencyRatioMin.addEventListener("change", handleRatioInputChange);
+  }
+
+  if (elements.frequencyRatioMax) {
+    elements.frequencyRatioMax.addEventListener("input", handleRatioInputChange);
+    elements.frequencyRatioMax.addEventListener("change", handleRatioInputChange);
   }
 
   if (elements.suggestionForm) {
@@ -554,6 +803,10 @@ function clearCurrentUser() {
   renderMealTypeOptions([]);
   state.dishFoodGroups = getDefaultFoodGroups();
   renderFoodGroupsEditor();
+  state.dishDays = [];
+  state.frequencyMode = FREQUENCY_MODES.DAYS;
+  state.frequencyRatio = getDefaultFrequencyRatio();
+  renderFrequencyControls();
   setSuggestionStatus("");
   state.heuristicsOrder = DEFAULT_HEURISTICS.slice();
   renderHeuristicList();
@@ -585,8 +838,19 @@ async function selectUser(userId) {
   }
   const user = await res.json();
   const userHeuristics = sanitizeHeuristicOrder(user.heuristics);
+  const dishes = Array.isArray(user.dishes)
+    ? user.dishes.map((dish) => {
+      const frequency = normalizeFrequencyForClient(dish);
+      return {
+        ...dish,
+        frequency,
+        days: frequency.mode === FREQUENCY_MODES.DAYS ? frequency.days.slice() : [],
+      };
+    })
+    : [];
   state.currentUser = {
     ...user,
+    dishes,
     mealsPerDay: clampMealsPerDay(user.mealsPerDay ?? DEFAULT_MEALS_PER_DAY),
     suggestions: ensureSuggestionStructure(user.suggestions),
     heuristics: userHeuristics.slice(),
@@ -773,14 +1037,22 @@ function renderDishes() {
 }
 
 function formatDishMeta(dish) {
-  if (!Array.isArray(dish.days) || dish.days.length === 0) return "";
-  const labels = dish.days
+  const frequency = normalizeFrequencyForClient(dish);
+  if (frequency.mode === FREQUENCY_MODES.RATIO && frequency.ratio) {
+    const { minDays, maxDays } = frequency.ratio;
+    if (minDays === maxDays) return `Every ${minDays} days`;
+    return `Every ${minDays}-${maxDays} days`;
+  }
+  if (!Array.isArray(frequency.days) || frequency.days.length === 0) {
+    return "No set days";
+  }
+  const labels = frequency.days
     .map((day) => {
       const found = WEEK_DAYS.find((d) => d.key === day);
       return found ? found.label : day;
     })
     .join(", ");
-  return `Days: ${labels}`;
+  return labels;
 }
 
 function startDishEdit(dish) {
@@ -793,7 +1065,15 @@ function startDishEdit(dish) {
   }
   state.dishFoodGroups = cloneFoodGroups(dish.foodGroups);
   renderFoodGroupsEditor();
-  renderDayCheckboxes(Array.isArray(dish.days) ? dish.days : []);
+  const frequency = normalizeFrequencyForClient(dish);
+  state.frequencyMode = frequency.mode;
+  state.dishDays = frequency.mode === FREQUENCY_MODES.DAYS ? frequency.days.slice() : [];
+  if (frequency.mode === FREQUENCY_MODES.RATIO && frequency.ratio) {
+    state.frequencyRatio = { minDays: frequency.ratio.minDays, maxDays: frequency.ratio.maxDays };
+  } else {
+    state.frequencyRatio = getDefaultFrequencyRatio();
+  }
+  renderFrequencyControls();
   if (elements.dishDelete) {
     elements.dishDelete.disabled = false;
   }
@@ -808,7 +1088,10 @@ function resetDishForm() {
   renderMealTypeOptions([]);
   if (elements.dishNotes) elements.dishNotes.value = "";
   renderFoodGroupsEditor();
-  renderDayCheckboxes([]);
+  state.dishDays = [];
+  state.frequencyMode = FREQUENCY_MODES.DAYS;
+  state.frequencyRatio = getDefaultFrequencyRatio();
+  renderFrequencyControls();
   if (elements.dishDelete) {
     elements.dishDelete.disabled = true;
   }
@@ -841,6 +1124,29 @@ async function handleDishDelete() {
   }
 }
 
+function getFrequencyPayload() {
+  if (state.frequencyMode === FREQUENCY_MODES.RATIO) {
+    const minDays = state.frequencyRatio.minDays == null
+      ? null
+      : clampRatioDayInput(state.frequencyRatio.minDays);
+    if (minDays == null) return null;
+    let maxDays = state.frequencyRatio.maxDays == null
+      ? minDays
+      : clampRatioDayInput(state.frequencyRatio.maxDays);
+    if (maxDays == null || maxDays < minDays) {
+      maxDays = minDays;
+    }
+    return {
+      mode: FREQUENCY_MODES.RATIO,
+      ratio: { minDays, maxDays },
+    };
+  }
+  return {
+    mode: FREQUENCY_MODES.DAYS,
+    days: state.dishDays.slice(),
+  };
+}
+
 async function handleDishSubmit(event) {
   event.preventDefault();
   if (!state.currentUser) return;
@@ -849,7 +1155,7 @@ async function handleDishSubmit(event) {
   const mealTypes = getSelectedMealTypes();
   const notes = elements.dishNotes.value.trim();
   const foodGroups = getFoodGroupsPayload();
-  const plannedDays = state.dishDays.slice();
+  const frequency = getFrequencyPayload();
   if (!name) {
     setDishStatus("Name is required", true);
     return;
@@ -858,8 +1164,18 @@ async function handleDishSubmit(event) {
     setDishStatus("Choose at least one meal type", true);
     return;
   }
+  if (!frequency) {
+    setDishStatus("Enter days between servings for X per Y mode.", true);
+    return;
+  }
 
-  const payload = { name, mealTypes, foodGroups, days: plannedDays };
+  const payload = {
+    name,
+    mealTypes,
+    foodGroups,
+    frequency,
+    days: frequency.mode === FREQUENCY_MODES.DAYS ? frequency.days.slice() : [],
+  };
   if (notes) payload.notes = notes;
 
   const userId = state.currentUser.id;

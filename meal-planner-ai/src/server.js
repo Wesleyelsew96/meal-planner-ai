@@ -24,8 +24,14 @@ const MEAL_SETS = {
   3: ["breakfast", "lunch", "dinner"],
   4: ["breakfast", "lunch", "dinner", "supper"],
 };
-const HEURISTIC_KEYS = ["weekday", "avoidDuplicates", "unscheduled", "borrow"];
+const HEURISTIC_KEYS = ["weekday", "avoidDuplicates", "ratioFrequency", "unscheduled", "borrow"];
 const DEFAULT_HEURISTICS = HEURISTIC_KEYS.slice();
+const FREQUENCY_MODES = {
+  DAYS: "days",
+  RATIO: "ratio",
+};
+const DEFAULT_RATIO_MIN_DAYS = 7;
+const MAX_RATIO_DAYS = 31;
 
 function clampMealsPerDay(value) {
   const num = Number(value);
@@ -124,6 +130,46 @@ function normalizeDays(list) {
     .filter((value, index, array) => WEEK_DAY_KEYS.includes(value) && array.indexOf(value) === index);
 }
 
+function clampRatioDay(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return null;
+  const rounded = Math.round(num);
+  if (rounded < 1) return 1;
+  if (rounded > MAX_RATIO_DAYS) return MAX_RATIO_DAYS;
+  return rounded;
+}
+
+function normalizeDishFrequency(dish) {
+  const source = dish && typeof dish === "object" ? dish.frequency : null;
+  const requestedMode = source && typeof source === "object" ? source.mode : null;
+  const fallbackDays = normalizeDays(dish && dish.days);
+  const mode = requestedMode === FREQUENCY_MODES.RATIO || requestedMode === FREQUENCY_MODES.DAYS
+    ? requestedMode
+    : FREQUENCY_MODES.DAYS;
+
+  if (mode === FREQUENCY_MODES.RATIO) {
+    const ratioSource = source && source.ratio;
+    const minDays = clampRatioDay(ratioSource && ratioSource.minDays) || DEFAULT_RATIO_MIN_DAYS;
+    let maxDays = clampRatioDay(ratioSource && ratioSource.maxDays);
+    if (!maxDays) maxDays = minDays;
+    if (maxDays < minDays) maxDays = minDays;
+    return {
+      mode: FREQUENCY_MODES.RATIO,
+      ratio: {
+        minDays,
+        maxDays,
+      },
+      days: [],
+    };
+  }
+
+  const days = source && Array.isArray(source.days) ? normalizeDays(source.days) : fallbackDays;
+  return {
+    mode: FREQUENCY_MODES.DAYS,
+    days,
+  };
+}
+
 function normalizeDish(dish) {
   if (!dish || typeof dish !== "object") return null;
   const normalized = { ...dish };
@@ -141,7 +187,10 @@ function normalizeDish(dish) {
     normalized.description = String(normalized.description);
   }
   normalized.foodGroups = normalizeFoodGroups(normalized.foodGroups || {});
-  normalized.days = normalizeDays(normalized.days);
+  normalized.frequency = normalizeDishFrequency(normalized);
+  normalized.days = normalized.frequency.mode === FREQUENCY_MODES.DAYS
+    ? normalized.frequency.days.slice()
+    : [];
   return normalized;
 }
 
@@ -165,124 +214,500 @@ function isDishUnique(ingredients, usedIngredients) {
   return !ingredients.some((ing) => usedIngredients.has(ing));
 }
 
-function pickDishWithPreference(candidates, preferUnique, usedIngredients) {
-  if (!preferUnique) {
-    const choice = pickRandom(candidates);
-    return choice ? { dish: choice, unique: true } : null;
+function formatRatioReason(dish, overdue) {
+  const ratio = dish.frequency && dish.frequency.mode === FREQUENCY_MODES.RATIO ? dish.frequency.ratio : null;
+  if (!ratio) {
+    return overdue ? "Meeting frequency target." : "Maintaining frequency target.";
   }
-  const uniqueOnly = candidates.filter((dish) => isDishUnique(dish._ingredients, usedIngredients));
-  if (uniqueOnly.length) {
-    return { dish: pickRandom(uniqueOnly), unique: true };
-  }
-  const fallback = pickRandom(candidates);
-  return fallback ? { dish: fallback, unique: false } : null;
+  const label = ratio.minDays === ratio.maxDays
+    ? `every ${ratio.minDays} days`
+    : `every ${ratio.minDays}-${ratio.maxDays} days`;
+  return overdue
+    ? `Overdue for ${label}; prioritizing frequency target.`
+    : `Targeting ${label}.`;
 }
 
-function chooseDishForMeal(user, meal, dayKey, heuristics, usedIngredients) {
-  const dishes = (user?.dishes || [])
-    .filter((dish) => Array.isArray(dish.mealTypes) && dish.mealTypes.includes(meal))
-    .map((dish) => ({ ...dish, _ingredients: getDishIngredients(dish) }));
-
-  if (dishes.length === 0) {
-    return {
-      dishId: null,
-      dishName: null,
-      reason: "No recommendation: no dishes entered for this meal type.",
-      ingredients: [],
+function buildRotationQueues(user, meals) {
+  const queues = {};
+  meals.forEach((meal) => {
+    const unscheduled = (user?.dishes || [])
+      .filter((dish) => Array.isArray(dish.mealTypes) && dish.mealTypes.includes(meal))
+      .filter((dish) => {
+        if (!dish.frequency || !dish.frequency.mode) return true;
+        if (dish.frequency.mode === FREQUENCY_MODES.RATIO) return false;
+        return !dish.frequency.days || dish.frequency.days.length === 0;
+      })
+      .map((dish) => dish.id);
+    queues[meal] = {
+      order: unscheduled,
+      unused: new Set(unscheduled),
     };
-  }
+  });
+  return queues;
+}
 
-  let preferUnique = false;
+function buildSpacingState(user, meals, rotationQueues) {
+  const state = {};
+  meals.forEach((meal) => {
+    state[meal] = {};
+    const rotationLength = Math.max(1, rotationQueues[meal]?.order?.length || 1);
+    (user?.dishes || []).forEach((dish) => {
+      if (!Array.isArray(dish.mealTypes) || !dish.mealTypes.includes(meal)) return;
+      let minGap = 1;
+      if (dish.frequency && dish.frequency.mode === FREQUENCY_MODES.RATIO && dish.frequency.ratio) {
+        minGap = clampRatioDay(dish.frequency.ratio.minDays) || DEFAULT_RATIO_MIN_DAYS;
+      } else if (!dish.frequency || !dish.frequency.days || dish.frequency.days.length === 0) {
+        minGap = rotationLength;
+      } else {
+        minGap = Math.max(1, Math.floor(7 / Math.max(1, dish.frequency.days.length)));
+      }
+      state[meal][dish.id] = { minGap: Math.max(1, minGap), lastUsed: null };
+    });
+  });
+  return state;
+}
 
-  const pools = {
-    weekday: dishes.filter((dish) => Array.isArray(dish.days) && dish.days.includes(dayKey)),
-    unscheduled: dishes.filter((dish) => !Array.isArray(dish.days) || dish.days.length === 0),
-    borrow: dishes,
-  };
-
-  for (const step of heuristics) {
-    if (step === "avoidDuplicates") {
-      preferUnique = true;
-      continue;
+function buildRatioState(user) {
+  const state = {};
+  (user?.dishes || []).forEach((dish) => {
+    if (dish.frequency && dish.frequency.mode === FREQUENCY_MODES.RATIO && dish.frequency.ratio) {
+      const minDays = clampRatioDay(dish.frequency.ratio.minDays) || DEFAULT_RATIO_MIN_DAYS;
+      let maxDays = clampRatioDay(dish.frequency.ratio.maxDays);
+      if (!maxDays) maxDays = minDays;
+      if (maxDays < minDays) maxDays = minDays;
+      state[dish.id] = {
+        minDays,
+        maxDays,
+        lastScheduledDay: null,
+      };
     }
-    let pool;
-    let reasonBase;
-    if (step === "weekday") {
-      pool = pools.weekday;
-      reasonBase = `Planned for ${WEEK_DAY_LABELS[dayKey] || capitalize(dayKey)}.`;
-    } else if (step === "unscheduled") {
-      pool = pools.unscheduled;
-      reasonBase = "No day selected; showing unscheduled dish.";
-    } else if (step === "borrow") {
-      pool = pools.borrow;
-      reasonBase = "Borrowed from another day.";
-    } else {
-      continue;
-    }
+  });
+  return state;
+}
 
-    if (!pool || pool.length === 0) continue;
+function isSpacingReady(spacingState, meal, dishId, dayIndex) {
+  if (!spacingState || !spacingState[meal]) return true;
+  const tracker = spacingState[meal][dishId];
+  if (!tracker) return true;
+  if (!Number.isInteger(tracker.lastUsed)) return true;
+  const gap = Math.max(1, tracker.minGap || 1);
+  return (dayIndex - tracker.lastUsed) >= gap;
+}
 
-    const result = pickDishWithPreference(pool, preferUnique, usedIngredients);
-    if (!result) continue;
+function updateSpacingTracker(spacingState, meal, dishId, dayIndex) {
+  if (!spacingState || !spacingState[meal] || !spacingState[meal][dishId]) return;
+  spacingState[meal][dishId].lastUsed = dayIndex;
+}
 
-    const note = preferUnique && !result.unique
-      ? `${reasonBase} (duplicate ingredients unavoidable).`
-      : reasonBase;
-    return {
-      dishId: result.dish.id,
-      dishName: result.dish.name,
-      reason: note,
-      ingredients: result.dish._ingredients,
-    };
-  }
-
-  const fallback = pickDishWithPreference(dishes, false, usedIngredients);
-  if (fallback) {
-    return {
-      dishId: fallback.dish.id,
-      dishName: fallback.dish.name,
-      reason: "No priority matched; showing fallback dish.",
-      ingredients: fallback.dish._ingredients,
-    };
-  }
-
+function clonePlannerState(state) {
   return {
-    dishId: null,
-    dishName: null,
-    reason: "No recommendation available.",
-    ingredients: [],
+    dayIngredients: state.dayIngredients.map((set) => new Set(set)),
+    spacing: Object.fromEntries(
+      Object.entries(state.spacing || {}).map(([meal, dishes]) => [
+        meal,
+        Object.fromEntries(Object.entries(dishes).map(([id, info]) => [id, { ...info }])),
+      ]),
+    ),
+    ratio: Object.fromEntries(Object.entries(state.ratio || {}).map(([id, info]) => [id, { ...info }])),
+    rotation: Object.fromEntries(
+      Object.entries(state.rotation || {}).map(([meal, info]) => [
+        meal,
+        {
+          order: Array.isArray(info.order) ? info.order.slice() : [],
+          unused: new Set(info.unused ? Array.from(info.unused) : []),
+        },
+      ]),
+    ),
   };
 }
 
-function buildSuggestionPlan(user, startDate, daysCount) {
+function createPlannerContext(user, startDate, daysCount) {
   const meals = getMealsForUser(user);
-  const heuristics = sanitizeHeuristicsOrder(user.heuristics);
-  const plan = [];
+  const dishById = {};
+  const mealToDishes = {};
+  const weeklyAssignments = {};
+  const ratioLocks = new Set();
+  const ratioDishes = [];
+  meals.forEach((meal) => {
+    mealToDishes[meal] = [];
+    weeklyAssignments[meal] = {};
+  });
+  (user?.dishes || []).forEach((dish) => {
+    const enriched = { ...dish, _ingredients: getDishIngredients(dish) };
+    dishById[dish.id] = enriched;
+    (enriched.mealTypes || []).forEach((meal) => {
+      if (mealToDishes[meal]) {
+        mealToDishes[meal].push(enriched);
+      }
+    });
+    if (enriched.frequency && enriched.frequency.mode === FREQUENCY_MODES.DAYS) {
+      (enriched.mealTypes || []).forEach((meal) => {
+        if (!weeklyAssignments[meal]) weeklyAssignments[meal] = {};
+        enriched.frequency.days.forEach((dayKey) => {
+          weeklyAssignments[meal][dayKey] = enriched.id;
+        });
+      });
+    }
+    if (enriched.frequency && enriched.frequency.mode === FREQUENCY_MODES.RATIO && enriched.frequency.ratio) {
+      ratioDishes.push(enriched);
+    }
+  });
+  const slots = [];
+  const slotLookup = {};
+  const dayMeta = [];
   for (let i = 0; i < daysCount; i += 1) {
     const date = new Date(startDate.getTime());
     date.setUTCDate(startDate.getUTCDate() + i);
     const dayKey = getWeekdayKey(date);
-    const usedIngredients = new Set();
-    const entry = {
+    dayMeta.push({
       date: formatIsoDate(date),
-      weekday: WEEK_DAY_LABELS[dayKey] || capitalize(dayKey),
-      meals: {},
-      mealOrder: meals.slice(),
-    };
+      weekdayKey: dayKey,
+      weekdayLabel: WEEK_DAY_LABELS[dayKey] || capitalize(dayKey),
+    });
     meals.forEach((meal) => {
-      const selection = chooseDishForMeal(user, meal, dayKey, heuristics, usedIngredients);
-      entry.meals[meal] = {
-        dishId: selection.dishId,
-        dishName: selection.dishName,
-        reason: selection.reason,
+      const slot = {
+        index: slots.length,
+        dayIndex: i,
+        meal,
+        dayKey,
+        lockedDishId: weeklyAssignments[meal]?.[dayKey] || null,
       };
-      if (selection.dishId && Array.isArray(selection.ingredients)) {
-        selection.ingredients.forEach((ing) => usedIngredients.add(ing));
+      slots.push(slot);
+      if (!slotLookup[meal]) slotLookup[meal] = {};
+      slotLookup[meal][i] = slot;
+    });
+  }
+  seedRatioAssignments({ meals, daysCount, slots, slotLookup, ratioLocks }, ratioDishes);
+  const lockedDayIngredients = Array.from({ length: daysCount }, () => new Set());
+  slots.forEach((slot) => {
+    if (!slot.lockedDishId) return;
+    const dish = dishById[slot.lockedDishId];
+    if (!dish || !Array.isArray(dish._ingredients)) return;
+    dish._ingredients.forEach((ing) => lockedDayIngredients[slot.dayIndex].add(ing));
+  });
+  return {
+    user,
+    meals,
+    startDate,
+    daysCount,
+    dishById,
+    mealToDishes,
+    weeklyAssignments,
+    slots,
+    dayMeta,
+    slotLookup,
+    ratioLocks,
+    lockedDayIngredients,
+  };
+}
+
+function seedRatioAssignments(context, ratioDishes) {
+  if (!Array.isArray(ratioDishes) || ratioDishes.length === 0) return;
+  ratioDishes.forEach((dish) => {
+    const ratio = dish.frequency && dish.frequency.ratio ? dish.frequency.ratio : {};
+    const minDays = clampRatioDay(ratio.minDays) || DEFAULT_RATIO_MIN_DAYS;
+    let maxDays = clampRatioDay(ratio.maxDays);
+    if (!maxDays) maxDays = minDays;
+    if (maxDays < minDays) maxDays = minDays;
+    (dish.mealTypes || []).forEach((meal) => {
+      let lastPlaced = null;
+      let windowStart = 0;
+      while (windowStart < context.daysCount) {
+        const earliest = Math.max(windowStart, lastPlaced === null ? 0 : lastPlaced + minDays);
+        if (earliest >= context.daysCount) break;
+        let latest = lastPlaced === null
+          ? Math.min(context.daysCount - 1, maxDays - 1)
+          : Math.min(context.daysCount - 1, lastPlaced + maxDays);
+        if (latest < earliest) {
+          windowStart = latest + 1;
+          continue;
+        }
+        const candidates = [];
+        for (let day = earliest; day <= latest; day += 1) {
+          const slot = context.slotLookup[meal]?.[day];
+          if (!slot) continue;
+          if (slot.lockedDishId) continue;
+          candidates.push(slot);
+        }
+        if (!candidates.length) {
+          windowStart = latest + 1;
+          continue;
+        }
+        const chosen = candidates[Math.floor(Math.random() * candidates.length)];
+        chosen.lockedDishId = dish.id;
+        chosen.lockedReason = formatRatioReason(dish, false);
+        context.ratioLocks.add(dish.id);
+        lastPlaced = chosen.dayIndex;
+        windowStart = lastPlaced + minDays;
       }
     });
-    plan.push(entry);
+  });
+}
+
+function initPlannerState(user, context) {
+  const rotation = buildRotationQueues(user, context.meals);
+  const spacing = buildSpacingState(user, context.meals, rotation);
+  const ratio = buildRatioState(user);
+  return {
+    dayIngredients: Array.from({ length: context.daysCount }, () => new Set()),
+    spacing,
+    rotation,
+    ratio,
+  };
+}
+
+function buildCandidates(slot, context, state) {
+  const dayIndex = slot.dayIndex;
+  const reservedIngredients = context.lockedDayIngredients?.[dayIndex];
+  const dayInfo = context.dayMeta[dayIndex];
+  if (slot.lockedDishId) {
+    const dish = context.dishById[slot.lockedDishId];
+    if (!dish) return [];
+    const conflict = dish._ingredients.some((ing) => state.dayIngredients[dayIndex].has(ing));
+    return [{
+      dish,
+      priority: 0,
+      forced: true,
+      ingredientConflict: conflict,
+      spacingOk: isSpacingReady(state.spacing, slot.meal, dish.id, dayIndex),
+      rotationRank: 0,
+      reasonBase: slot.lockedReason || `Planned for ${dayInfo.weekdayLabel}.`,
+    }];
   }
+  const mealDishes = context.mealToDishes[slot.meal] || [];
+  const candidates = [];
+  let hasUnusedPreferred = false;
+  mealDishes.forEach((dish) => {
+    const isRatioDish = dish.frequency && dish.frequency.mode === FREQUENCY_MODES.RATIO;
+    if (isRatioDish && context.ratioLocks && context.ratioLocks.has(dish.id)) {
+      return;
+    }
+    const freq = dish.frequency || { mode: FREQUENCY_MODES.DAYS, days: [] };
+    if (freq.mode === FREQUENCY_MODES.DAYS && freq.days.length > 0 && !freq.days.includes(slot.dayKey)) {
+      return;
+    }
+    const tracker = state.ratio[dish.id];
+    let priority = 3;
+    let forced = false;
+    let reasonBase = "Rotating dish.";
+    if (tracker) {
+      const earliest = Number.isInteger(tracker.lastScheduledDay)
+        ? tracker.lastScheduledDay + tracker.minDays
+        : 0;
+      const latest = Number.isInteger(tracker.lastScheduledDay)
+        ? tracker.lastScheduledDay + tracker.maxDays
+        : tracker.maxDays - 1;
+      if (slot.dayIndex < earliest) {
+        return;
+      } else {
+        forced = slot.dayIndex >= latest;
+        priority = forced ? 0 : 1;
+        reasonBase = formatRatioReason(dish, forced);
+      }
+    } else if (freq.mode === FREQUENCY_MODES.DAYS && freq.days.length > 0) {
+      priority = 0;
+      forced = true;
+      reasonBase = `Planned for ${dayInfo.weekdayLabel}.`;
+    }
+    const spacingOk = isSpacingReady(state.spacing, slot.meal, dish.id, slot.dayIndex);
+    if (!spacingOk && forced !== true) {
+      // allow but deprioritize
+    }
+    const dayIngredients = state.dayIngredients[dayIndex];
+    const ingredientConflict = dish._ingredients.some(
+      (ing) => dayIngredients.has(ing) || (reservedIngredients && reservedIngredients.has(ing)),
+    );
+    let rotationRank = 0;
+    const rotationInfo = state.rotation[slot.meal];
+    const isUnscheduled = !tracker && (!freq.days || freq.days.length === 0);
+    if (rotationInfo && isUnscheduled) {
+      if (rotationInfo.unused && rotationInfo.unused.has(dish.id)) {
+        rotationRank = 0;
+      } else {
+        const queue = rotationInfo.order || [];
+        const idx = queue.indexOf(dish.id);
+        rotationRank = idx === -1 ? queue.length : idx + 1;
+      }
+    }
+    const unusedPreferred = Boolean(
+      isUnscheduled && rotationInfo && rotationInfo.unused && rotationInfo.unused.has(dish.id),
+    );
+    if (unusedPreferred) hasUnusedPreferred = true;
+    candidates.push({
+      dish,
+      priority,
+      forced,
+      ingredientConflict,
+      spacingOk: spacingOk || forced,
+      spacingPenalty: spacingOk ? 0 : 1,
+      rotationRank,
+      isUnscheduled,
+      unusedPreferred,
+      reasonBase,
+    });
+  });
+  const pool = hasUnusedPreferred
+    ? candidates.filter((candidate) => !candidate.isUnscheduled || candidate.unusedPreferred)
+    : candidates;
+  const cleanPool = pool.filter((candidate) => (!candidate.ingredientConflict || candidate.forced));
+  const workingPool = cleanPool.length ? cleanPool : pool;
+  workingPool.sort((a, b) => (
+    (a.priority - b.priority)
+    || (a.ingredientConflict - b.ingredientConflict)
+    || (a.rotationRank - b.rotationRank)
+    || (a.spacingPenalty - b.spacingPenalty)
+  ));
+
+  const grouped = [];
+  workingPool.forEach((candidate) => {
+    const lastGroup = grouped[grouped.length - 1];
+    if (
+      lastGroup
+      && candidate.priority === lastGroup.key.priority
+      && candidate.ingredientConflict === lastGroup.key.ingredientConflict
+      && candidate.rotationRank === lastGroup.key.rotationRank
+      && candidate.spacingPenalty === lastGroup.key.spacingPenalty
+    ) {
+      lastGroup.items.push(candidate);
+    } else {
+      grouped.push({
+        key: {
+          priority: candidate.priority,
+          ingredientConflict: candidate.ingredientConflict,
+          rotationRank: candidate.rotationRank,
+          spacingPenalty: candidate.spacingPenalty,
+        },
+        items: [candidate],
+      });
+    }
+  });
+
+  if (slot.dayIndex === 0 && slot.meal === "supper" && process.env.DEBUG_MEALS === "1") {
+    console.log("Supper candidates day", slot.dayIndex, grouped.map((group) => ({
+      key: group.key,
+      dishes: group.items.map((c) => ({ name: c.dish.name, priority: c.priority })),
+    })));
+  }
+  const randomized = [];
+  grouped.forEach((group) => {
+    const shuffled = group.items
+      .map((item) => ({ item, r: Math.random() }))
+      .sort((a, b) => a.r - b.r)
+      .map((entry) => entry.item);
+    randomized.push(...shuffled);
+  });
+  return randomized;
+}
+
+function applyCandidate(slot, candidate, context, state) {
+  const next = clonePlannerState(state);
+  const dayIngredients = next.dayIngredients[slot.dayIndex];
+  candidate.dish._ingredients.forEach((ing) => dayIngredients.add(ing));
+  updateSpacingTracker(next.spacing, slot.meal, candidate.dish.id, slot.dayIndex);
+  if (next.ratio[candidate.dish.id]) {
+    next.ratio[candidate.dish.id].lastScheduledDay = slot.dayIndex;
+  }
+  const freq = candidate.dish.frequency || { mode: FREQUENCY_MODES.DAYS, days: [] };
+  const rotationInfo = next.rotation[slot.meal];
+  const isUnscheduled = candidate.isUnscheduled;
+  if (rotationInfo && isUnscheduled) {
+    rotationInfo.unused.delete(candidate.dish.id);
+    if (rotationInfo.unused.size === 0) {
+      rotationInfo.unused = new Set(rotationInfo.order);
+    }
+    const order = rotationInfo.order;
+    const idx = order.indexOf(candidate.dish.id);
+    if (idx !== -1) {
+      order.splice(idx, 1);
+      order.push(candidate.dish.id);
+    }
+  }
+  return next;
+}
+
+function buildReason(candidate) {
+  let note = candidate.reasonBase;
+  if (candidate.ingredientConflict && !candidate.forced) {
+    note = `${note} (duplicate ingredients unavoidable).`;
+  }
+  if (!candidate.spacingOk) {
+    note = `${note} (spacing target not possible).`;
+  }
+  if (candidate.rotationRank > 0 && candidate.priority >= 3) {
+    note = `${note} (rotation target not possible).`;
+  }
+  return note;
+}
+
+function solveSlots(index, context, state, assignments) {
+  if (index >= context.slots.length) {
+    return true;
+  }
+  const slot = context.slots[index];
+  const candidates = buildCandidates(slot, context, state);
+  if (!candidates.length) {
+    return false;
+  }
+  for (const candidate of candidates) {
+    const nextState = applyCandidate(slot, candidate, context, state);
+    if (!nextState) continue;
+    assignments[index] = { dish: candidate.dish, reason: buildReason(candidate) };
+    if (solveSlots(index + 1, context, nextState, assignments)) {
+      return true;
+    }
+  }
+  assignments[index] = null;
+  return false;
+}
+
+function finalizePlan(context, assignments) {
+  const plan = context.dayMeta.map((meta) => ({
+    date: meta.date,
+    weekday: meta.weekdayLabel,
+    meals: {},
+    mealOrder: context.meals.slice(),
+  }));
+  assignments.forEach((assignment, idx) => {
+    const slot = context.slots[idx];
+    const entry = plan[slot.dayIndex];
+    if (assignment) {
+      entry.meals[slot.meal] = {
+        dishId: assignment.dish.id,
+        dishName: assignment.dish.name,
+        reason: assignment.reason,
+      };
+    } else {
+      entry.meals[slot.meal] = {
+        dishId: null,
+        dishName: null,
+        reason: "Unable to satisfy constraints.",
+      };
+    }
+  });
   return plan;
+}
+
+function buildSuggestionPlan(user, startDate, daysCount) {
+  const context = createPlannerContext(user, startDate, daysCount);
+  const plannerState = initPlannerState(user, context);
+  const assignments = new Array(context.slots.length).fill(null);
+  const solved = solveSlots(0, context, plannerState, assignments);
+  if (!solved) {
+    return context.dayMeta.map((meta) => ({
+      date: meta.date,
+      weekday: meta.weekdayLabel,
+      meals: context.meals.reduce((acc, meal) => {
+        acc[meal] = {
+          dishId: null,
+          dishName: null,
+          reason: "Unable to satisfy constraints.",
+        };
+        return acc;
+      }, {}),
+      mealOrder: context.meals.slice(),
+    }));
+  }
+  return finalizePlan(context, assignments);
 }
 
 function normalizeUser(user) {
@@ -495,7 +920,7 @@ async function handleCreateDish(req, res, userId) {
     sendJson(res, 400, { error: "Missing body" });
     return;
   }
-  const { id, name, mealTypes = [], description, notes, metadata, foodGroups, days } = payload;
+  const { id, name, mealTypes = [], description, notes, metadata, foodGroups, days, frequency } = payload;
   if (!name || !Array.isArray(mealTypes) || mealTypes.length === 0) {
     sendJson(res, 400, { error: "Dish requires name and at least one meal type" });
     return;
@@ -523,6 +948,7 @@ async function handleCreateDish(req, res, userId) {
     metadata,
     foodGroups,
     days,
+    frequency,
   });
   user.dishes.push(dish);
   writeUsers(store);
@@ -537,11 +963,12 @@ async function handleUpdateDish(req, res, userId, dishId) {
     sendJson(res, 404, { error: "User not found" });
     return;
   }
-  const dish = user.dishes.find((d) => d.id === dishId);
-  if (!dish) {
+  const index = user.dishes.findIndex((d) => d.id === dishId);
+  if (index === -1) {
     sendJson(res, 404, { error: "Dish not found" });
     return;
   }
+  const dish = user.dishes[index];
   if (payload.name) dish.name = String(payload.name);
   if (Array.isArray(payload.mealTypes) && payload.mealTypes.length > 0) {
     dish.mealTypes = payload.mealTypes;
@@ -561,8 +988,13 @@ async function handleUpdateDish(req, res, userId, dishId) {
   if (Object.prototype.hasOwnProperty.call(payload, "days")) {
     dish.days = normalizeDays(payload.days);
   }
+  if (Object.prototype.hasOwnProperty.call(payload, "frequency")) {
+    dish.frequency = payload.frequency;
+  }
+  const normalized = normalizeDish(dish);
+  user.dishes[index] = normalized;
   writeUsers(store);
-  sendJson(res, 200, dish);
+  sendJson(res, 200, normalized);
 }
 
 function handleDeleteDish(req, res, userId, dishId) {
