@@ -112,6 +112,17 @@ function ensureUniqueUserId(store, baseId) {
   return candidate;
 }
 
+function ensureUniqueDishId(user, baseId) {
+  const safeBase = baseId && baseId.length ? baseId : "dish";
+  const existing = new Set((user?.dishes || []).map((dish) => dish.id));
+  let candidate = safeBase;
+  let counter = 1;
+  while (existing.has(candidate)) {
+    candidate = `${safeBase}-${counter++}`;
+  }
+  return candidate;
+}
+
 function normalizeFoodGroups(source) {
   const groups = {};
   FOOD_GROUP_KEYS.forEach((key) => {
@@ -925,7 +936,6 @@ async function handleCreateDish(req, res, userId) {
     sendJson(res, 400, { error: "Dish requires name and at least one meal type" });
     return;
   }
-  const dishId = id || name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || `dish-${Date.now()}`;
 
   const store = readUsers();
   const user = store.users.find((u) => u.id === userId);
@@ -934,11 +944,8 @@ async function handleCreateDish(req, res, userId) {
     return;
   }
   if (!Array.isArray(user.dishes)) user.dishes = [];
-  const exists = user.dishes.find((d) => d.id === dishId);
-  if (exists) {
-    sendJson(res, 409, { error: "Dish id already exists" });
-    return;
-  }
+  const baseId = id || slugify(name) || `dish-${Date.now()}`;
+  const dishId = ensureUniqueDishId(user, baseId);
   const dish = normalizeDish({
     id: dishId,
     name,
