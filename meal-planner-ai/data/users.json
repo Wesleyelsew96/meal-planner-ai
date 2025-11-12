@@ -40,8 +40,13 @@
               "friday",
               "saturday",
               "sunday"
-            ]
-          }
+            ],
+            "ratio": null
+          },
+          "_ingredients": [
+            "eggs",
+            "bacon"
+          ]
         },
         {
           "id": "grain-bowl",
@@ -80,8 +85,16 @@
               "wednesday",
               "thursday",
               "sunday"
-            ]
-          }
+            ],
+            "ratio": null
+          },
+          "_ingredients": [
+            "turkey",
+            "salami",
+            "spinach",
+            "bread",
+            "cheese"
+          ]
         },
         {
           "id": "sushi",
@@ -109,8 +122,15 @@
             "mode": "days",
             "days": [
               "tuesday"
-            ]
-          }
+            ],
+            "ratio": null
+          },
+          "_ingredients": [
+            "hotdog",
+            "pepperoni",
+            "bread",
+            "cheese"
+          ]
         },
         {
           "id": "steak",
@@ -131,8 +151,13 @@
           "days": [],
           "frequency": {
             "mode": "days",
-            "days": []
-          }
+            "days": [],
+            "ratio": null
+          },
+          "_ingredients": [
+            "chicken",
+            "pasta"
+          ]
         },
         {
           "id": "veggie-pasta",
@@ -153,8 +178,13 @@
           "days": [],
           "frequency": {
             "mode": "days",
-            "days": []
-          }
+            "days": [],
+            "ratio": null
+          },
+          "_ingredients": [
+            "chicken",
+            "rice"
+          ]
         },
         {
           "id": "pizzeria-leopold",
@@ -186,8 +216,16 @@
             "days": [
               "friday",
               "saturday"
-            ]
-          }
+            ],
+            "ratio": null
+          },
+          "_ingredients": [
+            "pepperoni",
+            "salami",
+            "basil",
+            "bread",
+            "cheese"
+          ]
         },
         {
           "id": "chicken-fries",
@@ -208,8 +246,13 @@
           "days": [],
           "frequency": {
             "mode": "days",
-            "days": []
-          }
+            "days": [],
+            "ratio": null
+          },
+          "_ingredients": [
+            "chicken",
+            "fries"
+          ]
         },
         {
           "id": "burger-fries",
@@ -235,7 +278,11 @@
               "maxDays": 4
             },
             "days": []
-          }
+          },
+          "_ingredients": [
+            "burger",
+            "fries"
+          ]
         },
         {
           "id": "steak-fries-asparagus",
@@ -256,8 +303,13 @@
           "days": [],
           "frequency": {
             "mode": "days",
-            "days": []
-          }
+            "days": [],
+            "ratio": null
+          },
+          "_ingredients": [
+            "steak",
+            "fries"
+          ]
         },
         {
           "id": "pork-fries-green-beans",
@@ -284,7 +336,12 @@
               "maxDays": 7
             },
             "days": []
-          }
+          },
+          "_ingredients": [
+            "pulled pork",
+            "fries",
+            "bread"
+          ]
         },
         {
           "id": "tacos-fogon-lagunero",
@@ -310,8 +367,14 @@
             "mode": "days",
             "days": [
               "tuesday"
-            ]
-          }
+            ],
+            "ratio": null
+          },
+          "_ingredients": [
+            "carnitas",
+            "al pastor",
+            "tacos"
+          ]
         },
         {
           "id": "chicken-noodles-asian",
@@ -332,8 +395,13 @@
           "days": [],
           "frequency": {
             "mode": "days",
-            "days": []
-          }
+            "days": [],
+            "ratio": null
+          },
+          "_ingredients": [
+            "chicken",
+            "noodles"
+          ]
         },
         {
           "id": "chipotle-carnitas-bowl",
@@ -354,8 +422,13 @@
           "days": [],
           "frequency": {
             "mode": "days",
-            "days": []
-          }
+            "days": [],
+            "ratio": null
+          },
+          "_ingredients": [
+            "carnitas",
+            "rice"
+          ]
         },
         {
           "id": "pork-fries-green-beans-1",
@@ -383,7 +456,12 @@
               "maxDays": 8
             },
             "days": []
-          }
+          },
+          "_ingredients": [
+            "pork",
+            "green beans",
+            "fries"
+          ]
         }
       ],
       "selections": {
@@ -393,106 +471,10 @@
         }
       },
       "suggestions": {
-        "generatedAt": "2025-11-09T14:49:19.560Z",
-        "startDate": "2025-11-09",
-        "days": 5,
+        "generatedAt": "2025-11-12T14:25:08.092Z",
+        "startDate": "2025-11-12",
+        "days": 7,
         "plan": [
-          {
-            "date": "2025-11-09",
-            "weekday": "Sunday",
-            "meals": {
-              "breakfast": {
-                "dishId": "smoothie",
-                "dishName": "Eggs and Bacon",
-                "reason": "Planned for Sunday."
-              },
-              "lunch": {
-                "dishId": "grain-bowl",
-                "dishName": "Turkey Sandwich",
-                "reason": "Planned for Sunday."
-              },
-              "dinner": {
-                "dishId": "steak",
-                "dishName": "Chicken Pasta",
-                "reason": "Rotating dish."
-              },
-              "supper": {
-                "dishId": "pork-fries-green-beans-1",
-                "dishName": "Pork + Fries + Green Beans",
-                "reason": "Targeting every 6-8 days."
-              }
-            },
-            "mealOrder": [
-              "breakfast",
-              "lunch",
-              "dinner",
-              "supper"
-            ]
-          },
-          {
-            "date": "2025-11-10",
-            "weekday": "Monday",
-            "meals": {
-              "breakfast": {
-                "dishId": "smoothie",
-                "dishName": "Eggs and Bacon",
-                "reason": "Planned for Monday."
-              },
-              "lunch": {
-                "dishId": "grain-bowl",
-                "dishName": "Turkey Sandwich",
-                "reason": "Planned for Monday."
-              },
-              "dinner": {
-                "dishId": "chicken-noodles-asian",
-                "dishName": "Chicken + Noodles (Asian)",
-                "reason": "Rotating dish."
-              },
-              "supper": {
-                "dishId": "steak-fries-asparagus",
-                "dishName": "Steak + Fries + Asparagus",
-                "reason": "Rotating dish."
-              }
-            },
-            "mealOrder": [
-              "breakfast",
-              "lunch",
-              "dinner",
-              "supper"
-            ]
-          },
-          {
-            "date": "2025-11-11",
-            "weekday": "Tuesday",
-            "meals": {
-              "breakfast": {
-                "dishId": "smoothie",
-                "dishName": "Eggs and Bacon",
-                "reason": "Planned for Tuesday."
-              },
-              "lunch": {
-                "dishId": "sushi",
-                "dishName": "Costco",
-                "reason": "Planned for Tuesday."
-              },
-              "dinner": {
-                "dishId": "veggie-pasta",
-                "dishName": "Chicken + Rice",
-                "reason": "Rotating dish."
-              },
-              "supper": {
-                "dishId": "tacos-fogon-lagunero",
-                "dishName": "Tacos (Fogon Lagunero)",
-                "reason": "Planned for Tuesday."
-              }
-            },
-            "mealOrder": [
-              "breakfast",
-              "lunch",
-              "dinner",
-              "supper"
-            ]
-          },
           {
             "date": "2025-11-12",
             "weekday": "Wednesday",
@@ -508,14 +490,14 @@
                 "reason": "Planned for Wednesday."
               },
               "dinner": {
-                "dishId": "chicken-fries",
-                "dishName": "Chicken + Fries",
-                "reason": "Rotating dish. (duplicate ingredients unavoidable)."
+                "dishId": "chicken-noodles-asian",
+                "dishName": "Chicken + Noodles (Asian)",
+                "reason": "Rotating dish."
               },
               "supper": {
-                "dishId": "burger-fries",
-                "dishName": "Burger + Fries",
-                "reason": "Targeting every 3-4 days."
+                "dishId": "steak-fries-asparagus",
+                "dishName": "Steak + Fries + Asparagus",
+                "reason": "Rotating dish."
               }
             },
             "mealOrder": [
@@ -556,16 +538,178 @@
               "dinner",
               "supper"
             ]
+          },
+          {
+            "date": "2025-11-14",
+            "weekday": "Friday",
+            "meals": {
+              "breakfast": {
+                "dishId": "smoothie",
+                "dishName": "Eggs and Bacon",
+                "reason": "Planned for Friday."
+              },
+              "lunch": {
+                "dishId": "pizzeria-leopold",
+                "dishName": "Pizzeria Leopold",
+                "reason": "Planned for Friday."
+              },
+              "dinner": {
+                "dishId": "chicken-fries",
+                "dishName": "Chicken + Fries",
+                "reason": "Rotating dish."
+              },
+              "supper": {
+                "dishId": "chipotle-carnitas-bowl",
+                "dishName": "Chipotle Carnitas Bowl",
+                "reason": "Rotating dish."
+              }
+            },
+            "mealOrder": [
+              "breakfast",
+              "lunch",
+              "dinner",
+              "supper"
+            ]
+          },
+          {
+            "date": "2025-11-15",
+            "weekday": "Saturday",
+            "meals": {
+              "breakfast": {
+                "dishId": "smoothie",
+                "dishName": "Eggs and Bacon",
+                "reason": "Planned for Saturday."
+              },
+              "lunch": {
+                "dishId": "pizzeria-leopold",
+                "dishName": "Pizzeria Leopold",
+                "reason": "Planned for Saturday."
+              },
+              "dinner": {
+                "dishId": "veggie-pasta",
+                "dishName": "Chicken + Rice",
+                "reason": "Rotating dish."
+              },
+              "supper": {
+                "dishId": "steak-fries-asparagus",
+                "dishName": "Steak + Fries + Asparagus",
+                "reason": "Rotating dish."
+              }
+            },
+            "mealOrder": [
+              "breakfast",
+              "lunch",
+              "dinner",
+              "supper"
+            ]
+          },
+          {
+            "date": "2025-11-16",
+            "weekday": "Sunday",
+            "meals": {
+              "breakfast": {
+                "dishId": "smoothie",
+                "dishName": "Eggs and Bacon",
+                "reason": "Planned for Sunday."
+              },
+              "lunch": {
+                "dishId": "grain-bowl",
+                "dishName": "Turkey Sandwich",
+                "reason": "Planned for Sunday."
+              },
+              "dinner": {
+                "dishId": "chicken-noodles-asian",
+                "dishName": "Chicken + Noodles (Asian)",
+                "reason": "Rotating dish."
+              },
+              "supper": {
+                "dishId": "burger-fries",
+                "dishName": "Burger + Fries",
+                "reason": "Targeting every 3-4 days."
+              }
+            },
+            "mealOrder": [
+              "breakfast",
+              "lunch",
+              "dinner",
+              "supper"
+            ]
+          },
+          {
+            "date": "2025-11-17",
+            "weekday": "Monday",
+            "meals": {
+              "breakfast": {
+                "dishId": "smoothie",
+                "dishName": "Eggs and Bacon",
+                "reason": "Planned for Monday."
+              },
+              "lunch": {
+                "dishId": "grain-bowl",
+                "dishName": "Turkey Sandwich",
+                "reason": "Planned for Monday."
+              },
+              "dinner": {
+                "dishId": "steak",
+                "dishName": "Chicken Pasta",
+                "reason": "Rotating dish."
+              },
+              "supper": {
+                "dishId": "chipotle-carnitas-bowl",
+                "dishName": "Chipotle Carnitas Bowl",
+                "reason": "Rotating dish."
+              }
+            },
+            "mealOrder": [
+              "breakfast",
+              "lunch",
+              "dinner",
+              "supper"
+            ]
+          },
+          {
+            "date": "2025-11-18",
+            "weekday": "Tuesday",
+            "meals": {
+              "breakfast": {
+                "dishId": "smoothie",
+                "dishName": "Eggs and Bacon",
+                "reason": "Planned for Tuesday."
+              },
+              "lunch": {
+                "dishId": "sushi",
+                "dishName": "Costco",
+                "reason": "Planned for Tuesday."
+              },
+              "dinner": {
+                "dishId": "chicken-fries",
+                "dishName": "Chicken + Fries",
+                "reason": "Rotating dish."
+              },
+              "supper": {
+                "dishId": "tacos-fogon-lagunero",
+                "dishName": "Tacos (Fogon Lagunero)",
+                "reason": "Planned for Tuesday."
+              }
+            },
+            "mealOrder": [
+              "breakfast",
+              "lunch",
+              "dinner",
+              "supper"
+            ]
           }
         ]
       },
       "heuristics": [
-        "weekday",
         "avoidDuplicates",
-        "ratioFrequency",
         "unscheduled",
         "borrow"
-      ]
+      ],
+      "strategy": {
+        "id": "balanced",
+        "customOrder": []
+      }
     },
     {
       "id": "wesley",
@@ -588,8 +732,10 @@
           "days": [],
           "frequency": {
             "mode": "days",
-            "days": []
-          }
+            "days": [],
+            "ratio": null
+          },
+          "_ingredients": []
         },
         {
           "id": "chicken-salad",
@@ -606,8 +752,10 @@
           "days": [],
           "frequency": {
             "mode": "days",
-            "days": []
-          }
+            "days": [],
+            "ratio": null
+          },
+          "_ingredients": []
         },
         {
           "id": "wrap",
@@ -624,8 +772,10 @@
           "days": [],
           "frequency": {
             "mode": "days",
-            "days": []
-          }
+            "days": [],
+            "ratio": null
+          },
+          "_ingredients": []
         },
         {
           "id": "salmon",
@@ -642,8 +792,10 @@
           "days": [],
           "frequency": {
             "mode": "days",
-            "days": []
-          }
+            "days": [],
+            "ratio": null
+          },
+          "_ingredients": []
         },
         {
           "id": "stir-fry",
@@ -660,8 +812,10 @@
           "days": [],
           "frequency": {
             "mode": "days",
-            "days": []
-          }
+            "days": [],
+            "ratio": null
+          },
+          "_ingredients": []
         },
         {
           "id": "taco-night",
@@ -678,8 +832,10 @@
           "days": [],
           "frequency": {
             "mode": "days",
-            "days": []
-          }
+            "days": [],
+            "ratio": null
+          },
+          "_ingredients": []
         }
       ],
       "selections": {},
@@ -717,12 +873,14 @@
         ]
       },
       "heuristics": [
-        "weekday",
         "avoidDuplicates",
         "unscheduled",
-        "borrow",
-        "ratioFrequency"
-      ]
+        "borrow"
+      ],
+      "strategy": {
+        "id": "balanced",
+        "customOrder": []
+      }
     }
   ]
 }

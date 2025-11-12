@@ -17,13 +17,24 @@ Baseline Suggestion Logic
 
 Project Structure
 
-- `src/engine.js` - core rotation logic (shared by CLI and UI)
-- `src/cli.js` - command line helper for quick suggestions
+- `src/planner/engine.js` - DFS-based planner shared by the server and CLI
 - `src/server.js` - lightweight Node server serving the UI + JSON API
+- `src/cli.js` - command line helper powered by the same planner
+- `src/engine.js` - legacy deterministic engine (kept for baseline tests)
+- `src/strategies/` - heuristic registry + preset strategy definitions
+- `src/shared/` - normalization helpers reused across modules
 - `public/` - browser UI assets (index, styling, client script)
 - `data/users.json` - seed data with two users (Jason, Wesley)
 - `examples/profile.example.json` - standalone sample profile for the CLI
-- `test/engine.test.js` - rotation smoke test
+- `test/engine.test.js` - legacy rotation smoke test
+
+Suggestion Strategies
+---------------------
+
+- Backend heuristics are now organized into a registry so they can be evaluated in any order.
+- Presets live under `src/strategies/presets.js`. The initial `"balanced"` preset matches the legacy DFS behavior and is exposed via `GET /api/strategies`.
+- Users can apply presets from the UI heuristics panel. Custom drag ordering still works; whenever a user reorders heuristics the backend records a `"custom"` strategy for that profile.
+- Hard constraints (ratio cadence + weekday locks) always execute first and are shown as read-only tiles in the UI. Only the soft heuristics (duplicate avoidance, unscheduled preference, borrow fallback) are reorderable/preset-driven.
 
 Quick Start (UI)
 
@@ -39,11 +50,11 @@ npm start
 Command Line Usage
 
 ```
-# rotate suggestions for multiple days
-npm run start:cli -- --days 3
+# generate a 3-day plan (same output as the UI/server)
+npm run start:cli -- --profile ./examples/profile.example.json --days 3
 
 # lunch only for today
-node src/cli.js --profile ./examples/profile.example.json --meal lunch --days 1
+node src/cli.js --profile ./examples/profile.example.json --meal lunch
 
 # specify a start date
 node src/cli.js --profile ./examples/profile.example.json --days 2 --date 2025-11-01

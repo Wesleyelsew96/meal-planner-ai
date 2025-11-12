@@ -47,9 +47,23 @@
     <section class="panel heuristics-panel">
       <div class="heuristics-header">
         <h2>Suggestion Heuristics</h2>
-        <p class="hint">Set the priority order. Move cards up or down to adjust.</p>
+        <p class="hint">Hard constraints always apply first; reorder soft heuristics to fine-tune behavior.</p>
       </div>
-      <ol id="heuristic-list" class="heuristic-list" aria-live="polite"></ol>
+      <div class="heuristics-groups">
+        <div class="heuristic-group">
+          <h3>Hard Constraints</h3>
+          <p class="hint">Always enforced by the planner. These cannot be reordered.</p>
+          <ul id="heuristic-hard-list" class="heuristic-hard-list" aria-live="polite"></ul>
+        </div>
+        <div class="heuristic-group">
+          <div class="heuristic-group-header">
+            <h3>Soft Heuristics</h3>
+            <p class="hint">Drag cards to change the fallback priority.</p>
+          </div>
+          <div id="heuristic-presets" class="heuristic-presets" role="group" aria-label="Strategy presets"></div>
+          <ol id="heuristic-list" class="heuristic-list" aria-live="polite"></ol>
+        </div>
+      </div>
     </section>
 
     <section class="panel" id="dish-panel">
@@ -133,6 +147,7 @@
   </footer>
 
   <script src="/engine.js"></script>
+  <script src="shared-frequency.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

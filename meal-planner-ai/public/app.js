@@ -1,12 +1,10 @@
 const DEFAULT_MEAL_MIN = 2;
 const DEFAULT_MEAL_MAX = 4;
 const DEFAULT_MEALS_PER_DAY = 3;
-const FREQUENCY_MODES = {
-  DAYS: "days",
-  RATIO: "ratio",
-};
-const DEFAULT_RATIO_MIN_DAYS = 7;
-const RATIO_DAY_MAX = 31;
+const FrequencyUtils = window.SharedFrequency || {};
+const FREQUENCY_MODES = FrequencyUtils.FREQUENCY_MODES || { DAYS: "days", RATIO: "ratio" };
+const DEFAULT_RATIO_MIN_DAYS = FrequencyUtils.DEFAULT_RATIO_MIN_DAYS || 7;
+const RATIO_DAY_MAX = FrequencyUtils.RATIO_DAY_MAX || 31;
 
 const MEAL_SETS = {
   2: ["breakfast", "dinner"],
@@ -22,29 +20,43 @@ const MEAL_LABELS = {
 };
 
 const HEURISTIC_REGISTRY = {
+  ratioFrequency: {
+    type: "hard",
+    label: "Meet Frequency Target",
+    description: "Honor every-X-days cadence before considering other options.",
+  },
   weekday: {
+    type: "hard",
     label: "Match Planned Weekday",
-    description: "Prefer dishes explicitly scheduled for the same weekday and meal.",
+    description: "Respect dishes that are locked to a particular weekday/meal.",
   },
   avoidDuplicates: {
+    type: "soft",
     label: "Avoid Duplicate Ingredients",
     description: "Try not to serve the same main ingredient twice in a single day.",
   },
-  ratioFrequency: {
-    label: "Meet Frequency Target",
-    description: "Prioritize dishes that should repeat every few days.",
-  },
   unscheduled: {
+    type: "soft",
     label: "Use Unscheduled Dishes",
-    description: "If no weekday match exists, pick from dishes with no day assignments.",
+    description: "Prefer dishes that aren't pinned to specific weekdays.",
   },
   borrow: {
+    type: "soft",
     label: "Borrow From Other Days",
-    description: "As a fallback, suggest any dish of that meal type.",
+    description: "As a final fallback, allow any dish of that meal type.",
   },
 };
 
-const DEFAULT_HEURISTICS = Object.keys(HEURISTIC_REGISTRY);
+const HARD_HEURISTICS = ["ratioFrequency", "weekday"];
+const SOFT_HEURISTICS = ["avoidDuplicates", "unscheduled", "borrow"];
+const DEFAULT_HEURISTICS = SOFT_HEURISTICS.slice();
+const DEFAULT_STRATEGY_PRESET = {
+  id: "balanced",
+  label: "Balanced Rotation",
+  description: "Matches the legacy DFS priority order.",
+  heuristics: DEFAULT_HEURISTICS.slice(),
+};
+const DEFAULT_STRATEGY_ID = DEFAULT_STRATEGY_PRESET.id;
 
 const WEEK_DAYS = [
   { key: "monday", label: "Mon" },
@@ -91,6 +103,9 @@ function getDefaultFrequencyRatio() {
 }
 
 function clampRatioDayInput(value) {
+  if (typeof FrequencyUtils.clampRatioDay === "function") {
+    return FrequencyUtils.clampRatioDay(value);
+  }
   const num = Number(value);
   if (!Number.isFinite(num)) return null;
   const rounded = Math.round(num);
@@ -100,6 +115,9 @@ function clampRatioDayInput(value) {
 }
 
 function normalizeFrequencyForClient(dish) {
+  if (FrequencyUtils.normalizeFrequency) {
+    return FrequencyUtils.normalizeFrequency(dish && dish.frequency, dish && dish.days);
+  }
   const source = dish && dish.frequency;
   if (source && source.mode === FREQUENCY_MODES.RATIO) {
     const ratioSource = source.ratio || {};
@@ -132,6 +150,7 @@ const state = {
   frequencyMode: FREQUENCY_MODES.DAYS,
   frequencyRatio: getDefaultFrequencyRatio(),
   heuristicsOrder: DEFAULT_HEURISTICS.slice(),
+  strategies: [],
 };
 
 const elements = {
@@ -162,11 +181,21 @@ const elements = {
   dishDelete: document.getElementById("dish-delete"),
   suggestionStatus: document.getElementById("suggestion-status"),
   heuristicList: document.getElementById("heuristic-list"),
+  heuristicHardList: document.getElementById("heuristic-hard-list"),
+  heuristicPresets: document.getElementById("heuristic-presets"),
   suggestionForm: document.getElementById("suggestion-form"),
   suggestionDate: document.getElementById("suggestion-date"),
   suggestionDays: document.getElementById("suggestion-days"),
   suggestions: document.getElementById("suggestions"),
 };
+
+function setSuggestionDaysValue(value) {
+  const clamped = clampSuggestionDays(value);
+  if (elements.suggestionDays) {
+    elements.suggestionDays.value = String(clamped);
+  }
+  return clamped;
+}
 
 function clampMealsPerDay(value) {
   const num = Number(value);
@@ -320,6 +349,17 @@ function ensureSuggestionStructure(raw) {
   return raw;
 }
 
+function applySuggestionState(rawSuggestion, target = state.currentUser) {
+  const suggestion = ensureSuggestionStructure(rawSuggestion);
+  if (target) {
+    target.suggestions = suggestion;
+  }
+  if (target === state.currentUser && suggestion.days) {
+    setSuggestionDaysValue(suggestion.days);
+  }
+  return suggestion;
+}
+
 function formatMeal(meal) {
   if (!meal) return "";
   return meal.charAt(0).toUpperCase() + meal.slice(1);
@@ -350,6 +390,52 @@ function sanitizeHeuristicOrder(order) {
     }
   });
   return sanitized;
+}
+
+function normalizeStrategyForClient(strategy, heuristics = DEFAULT_HEURISTICS) {
+  const fallbackOrder = sanitizeHeuristicOrder(heuristics);
+  if (strategy && typeof strategy === "object" && typeof strategy.id === "string") {
+    if (strategy.id === "custom") {
+      const customOrder = sanitizeHeuristicOrder(strategy.customOrder || fallbackOrder);
+      return { id: "custom", customOrder };
+    }
+    return { id: strategy.id, customOrder: [] };
+  }
+  const defaultOrder = sanitizeHeuristicOrder(DEFAULT_STRATEGY_PRESET.heuristics);
+  const matchesDefault = fallbackOrder.length === defaultOrder.length
+    && fallbackOrder.every((key, index) => key === defaultOrder[index]);
+  if (matchesDefault) {
+    return { id: DEFAULT_STRATEGY_ID, customOrder: [] };
+  }
+  return { id: "custom", customOrder: fallbackOrder };
+}
+
+function getKnownStrategies() {
+  if (Array.isArray(state.strategies) && state.strategies.length) {
+    return state.strategies;
+  }
+  return [DEFAULT_STRATEGY_PRESET];
+}
+
+function findStrategyById(id) {
+  if (!id) return null;
+  return getKnownStrategies().find((strategy) => strategy.id === id) || null;
+}
+
+function syncStrategyState(strategyPayload, heuristicsOrder) {
+  if (!state.currentUser) return;
+  const order = sanitizeHeuristicOrder(heuristicsOrder || state.heuristicsOrder);
+  state.heuristicsOrder = order.slice();
+  state.currentUser.heuristics = order.slice();
+  state.currentUser.strategy = normalizeStrategyForClient(strategyPayload, order);
+}
+
+function markStrategyAsCustom() {
+  if (!state.currentUser) return;
+  state.currentUser.strategy = {
+    id: "custom",
+    customOrder: state.heuristicsOrder.slice(),
+  };
 }
 
 function getApiUrl(path) {
@@ -583,11 +669,12 @@ function renderHeuristicList() {
   const order = state.heuristicsOrder && state.heuristicsOrder.length
     ? state.heuristicsOrder
     : DEFAULT_HEURISTICS.slice();
+  const sanitized = sanitizeHeuristicOrder(order);
   const hasUser = Boolean(state.currentUser);
   elements.heuristicList.innerHTML = "";
-  order.forEach((key, index) => {
+  sanitized.forEach((key, index) => {
     const def = HEURISTIC_REGISTRY[key];
-    if (!def) return;
+    if (!def || def.type === "hard") return;
     const li = document.createElement("li");
     li.className = "heuristic-item";
     const card = document.createElement("div");
@@ -616,13 +703,31 @@ function renderHeuristicList() {
     downBtn.textContent = "↓";
     downBtn.dataset.heuristic = key;
     downBtn.dataset.direction = "down";
-    downBtn.disabled = !hasUser || index === order.length - 1;
+    downBtn.disabled = !hasUser || index === sanitized.length - 1;
     controls.appendChild(upBtn);
     controls.appendChild(downBtn);
     card.appendChild(controls);
 
     li.appendChild(card);
     elements.heuristicList.appendChild(li);
+  });
+}
+
+function renderHeuristicHardList() {
+  if (!elements.heuristicHardList) return;
+  elements.heuristicHardList.innerHTML = "";
+  HARD_HEURISTICS.forEach((key) => {
+    const def = HEURISTIC_REGISTRY[key];
+    if (!def) return;
+    const li = document.createElement("li");
+    li.className = "heuristic-hard-card";
+    const title = document.createElement("h3");
+    title.textContent = def.label;
+    const desc = document.createElement("p");
+    desc.textContent = def.description;
+    li.appendChild(title);
+    li.appendChild(desc);
+    elements.heuristicHardList.appendChild(li);
   });
 }
 
@@ -639,8 +744,10 @@ function moveHeuristic(key, delta) {
   state.heuristicsOrder = order;
   if (state.currentUser) {
     state.currentUser.heuristics = order.slice();
+    markStrategyAsCustom();
   }
   renderHeuristicList();
+  renderHeuristicPresets();
 }
 
 function handleHeuristicControl(event) {
@@ -650,12 +757,86 @@ function handleHeuristicControl(event) {
   moveHeuristic(button.dataset.heuristic, direction);
 }
 
+function renderHeuristicPresets() {
+  if (!elements.heuristicPresets) return;
+  const container = elements.heuristicPresets;
+  const strategies = getKnownStrategies();
+  const activeId = state.currentUser?.strategy?.id || null;
+  const hasUser = Boolean(state.currentUser);
+  container.innerHTML = "";
+  strategies.forEach((strategy) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "heuristic-preset";
+    button.dataset.strategyId = strategy.id;
+    button.textContent = strategy.label;
+    button.title = strategy.description;
+    button.disabled = !hasUser;
+    button.classList.toggle("active", hasUser && strategy.id === activeId && activeId !== "custom");
+    container.appendChild(button);
+  });
+}
+
+async function loadStrategies() {
+  try {
+    const res = await fetch(getApiUrl("/api/strategies"));
+    if (!res.ok) throw new Error(`Failed to load strategies (${res.status})`);
+    const data = await res.json();
+    if (Array.isArray(data)) {
+      state.strategies = data.map((strategy) => ({
+        ...strategy,
+        heuristics: sanitizeHeuristicOrder(strategy.heuristics || DEFAULT_HEURISTICS),
+      }));
+    } else {
+      state.strategies = [];
+    }
+  } catch (err) {
+    console.error("Unable to load strategies", err);
+    state.strategies = [];
+  }
+  renderHeuristicPresets();
+}
+
+async function handlePresetClick(event) {
+  const button = event.target.closest("button[data-strategy-id]");
+  if (!button || !state.currentUser) return;
+  const strategyId = button.dataset.strategyId;
+  if (!strategyId) return;
+  try {
+    setUserStatus(`Applying ${button.textContent} preset...`);
+    await applyStrategyPreset(strategyId);
+    setUserStatus(`Applied ${button.textContent} preset.`);
+  } catch (err) {
+    console.error("Failed to apply strategy preset", err);
+    setUserStatus(err.message || "Unable to apply preset.", true);
+  }
+}
+
+async function applyStrategyPreset(strategyId) {
+  if (!state.currentUser) return;
+  const res = await fetch(getApiUrl(`/api/users/${state.currentUser.id}/strategy`), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ strategyId }),
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok || !data) {
+    throw new Error((data && data.error) || "Unable to apply preset.");
+  }
+  syncStrategyState(data.strategy, data.heuristics);
+  renderHeuristicList();
+  renderHeuristicPresets();
+}
+
 async function init() {
   bindEvents();
   renderMealTypeOptions();
   renderFoodGroupsEditor();
   renderFrequencyControls();
+  renderHeuristicHardList();
   renderHeuristicList();
+  renderHeuristicPresets();
+  await loadStrategies();
   await loadUsers();
   setDefaultDate();
 }
@@ -731,6 +912,10 @@ function bindEvents() {
 
   if (elements.heuristicList) {
     elements.heuristicList.addEventListener("click", handleHeuristicControl);
+  }
+
+  if (elements.heuristicPresets) {
+    elements.heuristicPresets.addEventListener("click", handlePresetClick);
   }
 }
 
@@ -809,7 +994,9 @@ function clearCurrentUser() {
   renderFrequencyControls();
   setSuggestionStatus("");
   state.heuristicsOrder = DEFAULT_HEURISTICS.slice();
+  setSuggestionDaysValue(1);
   renderHeuristicList();
+  renderHeuristicPresets();
 }
 
 function fillUserForm() {
@@ -838,6 +1025,7 @@ async function selectUser(userId) {
   }
   const user = await res.json();
   const userHeuristics = sanitizeHeuristicOrder(user.heuristics);
+  const strategy = normalizeStrategyForClient(user.strategy, userHeuristics);
   const dishes = Array.isArray(user.dishes)
     ? user.dishes.map((dish) => {
       const frequency = normalizeFrequencyForClient(dish);
@@ -854,7 +1042,9 @@ async function selectUser(userId) {
     mealsPerDay: clampMealsPerDay(user.mealsPerDay ?? DEFAULT_MEALS_PER_DAY),
     suggestions: ensureSuggestionStructure(user.suggestions),
     heuristics: userHeuristics.slice(),
+    strategy,
   };
+  applySuggestionState(state.currentUser.suggestions, state.currentUser);
   state.heuristicsOrder = userHeuristics.slice();
   state.editingDishId = null;
   if (elements.userSelect) {
@@ -868,6 +1058,7 @@ async function selectUser(userId) {
   setUserStatus("");
   setSuggestionStatus("");
   renderHeuristicList();
+  renderHeuristicPresets();
 }
 
 function renderUserSummary() {
@@ -892,7 +1083,13 @@ function renderUserSummary() {
 function getUserFormPayload() {
   const name = elements.userName ? elements.userName.value.trim() : "";
   const mealsPerDay = getMealsPerDayFromInput();
-  return { name, mealsPerDay, heuristics: state.heuristicsOrder.slice() };
+  const payload = { name, mealsPerDay };
+  if (state.currentUser && state.currentUser.strategy && state.currentUser.strategy.id !== "custom") {
+    payload.strategyId = state.currentUser.strategy.id;
+  } else {
+    payload.heuristics = state.heuristicsOrder.slice();
+  }
+  return payload;
 }
 
 async function handleUserCreate() {
@@ -941,15 +1138,20 @@ async function handleUserSave() {
       throw new Error((data && data.error) || "Unable to save user.");
     }
     const updated = data;
+    const heuristics = sanitizeHeuristicOrder(updated.heuristics ?? state.heuristicsOrder);
+    const strategy = normalizeStrategyForClient(updated.strategy ?? state.currentUser.strategy, heuristics);
     state.currentUser = {
       ...state.currentUser,
       ...updated,
       mealsPerDay: clampMealsPerDay(updated.mealsPerDay ?? payload.mealsPerDay),
       suggestions: ensureSuggestionStructure(updated.suggestions ?? state.currentUser.suggestions),
-      heuristics: sanitizeHeuristicOrder(updated.heuristics ?? state.heuristicsOrder),
+      heuristics,
+      strategy,
     };
-    state.heuristicsOrder = state.currentUser.heuristics.slice();
+    applySuggestionState(state.currentUser.suggestions, state.currentUser);
+    state.heuristicsOrder = heuristics.slice();
     renderHeuristicList();
+    renderHeuristicPresets();
     fillUserForm();
     renderUserSummary();
     setUserStatus("User saved.");
@@ -1238,8 +1440,12 @@ async function handleSuggestionSubmit() {
   const payload = {
     startDate: elements.suggestionDate?.value || null,
     days,
-    heuristics: state.heuristicsOrder.slice(),
   };
+  if (state.currentUser.strategy && state.currentUser.strategy.id !== "custom") {
+    payload.strategyId = state.currentUser.strategy.id;
+  } else {
+    payload.heuristics = state.heuristicsOrder.slice();
+  }
 
   try {
     setSuggestionStatus("Generating suggestions...");
@@ -1253,7 +1459,7 @@ async function handleSuggestionSubmit() {
       throw new Error(info.error || "Unable to generate suggestions.");
     }
     const suggestion = await res.json();
-    state.currentUser.suggestions = ensureSuggestionStructure(suggestion);
+    applySuggestionState(suggestion);
     renderSuggestions();
     setSuggestionStatus("Suggestions updated.");
   } catch (err) {
@@ -1270,8 +1476,7 @@ function renderSuggestions() {
     elements.suggestions.innerHTML = "<p>Select a user to view suggestions.</p>";
     return;
   }
-  const suggestion = ensureSuggestionStructure(state.currentUser.suggestions);
-  state.currentUser.suggestions = suggestion;
+  const suggestion = applySuggestionState(state.currentUser.suggestions, state.currentUser);
   if (!suggestion.plan.length) {
     elements.suggestions.innerHTML = "<p>No suggestions yet. Click Suggest to generate a plan.</p>";
     return;
