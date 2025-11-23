@@ -471,7 +471,7 @@
         }
       },
       "suggestions": {
-        "generatedAt": "2025-11-12T14:25:08.092Z",
+        "generatedAt": "2025-11-13T05:31:06.352Z",
         "startDate": "2025-11-12",
         "days": 7,
         "plan": [
@@ -490,8 +490,8 @@
                 "reason": "Planned for Wednesday."
               },
               "dinner": {
-                "dishId": "chicken-noodles-asian",
-                "dishName": "Chicken + Noodles (Asian)",
+                "dishId": "veggie-pasta",
+                "dishName": "Chicken + Rice",
                 "reason": "Rotating dish."
               },
               "supper": {
@@ -522,14 +522,14 @@
                 "reason": "Planned for Thursday."
               },
               "dinner": {
-                "dishId": "steak",
-                "dishName": "Chicken Pasta",
+                "dishId": "chicken-noodles-asian",
+                "dishName": "Chicken + Noodles (Asian)",
                 "reason": "Rotating dish."
               },
               "supper": {
-                "dishId": "pork-fries-green-beans",
-                "dishName": "Pulled Pork Sandwich + Fries",
-                "reason": "Targeting every 7 days."
+                "dishId": "chipotle-carnitas-bowl",
+                "dishName": "Chipotle Carnitas Bowl",
+                "reason": "Rotating dish."
               }
             },
             "mealOrder": [
@@ -554,13 +554,13 @@
                 "reason": "Planned for Friday."
               },
               "dinner": {
-                "dishId": "chicken-fries",
-                "dishName": "Chicken + Fries",
+                "dishId": "steak",
+                "dishName": "Chicken Pasta",
                 "reason": "Rotating dish."
               },
               "supper": {
-                "dishId": "chipotle-carnitas-bowl",
-                "dishName": "Chipotle Carnitas Bowl",
+                "dishId": "steak-fries-asparagus",
+                "dishName": "Steak + Fries + Asparagus",
                 "reason": "Rotating dish."
               }
             },
@@ -586,13 +586,13 @@
                 "reason": "Planned for Saturday."
               },
               "dinner": {
-                "dishId": "veggie-pasta",
-                "dishName": "Chicken + Rice",
+                "dishId": "chicken-fries",
+                "dishName": "Chicken + Fries",
                 "reason": "Rotating dish."
               },
               "supper": {
-                "dishId": "steak-fries-asparagus",
-                "dishName": "Steak + Fries + Asparagus",
+                "dishId": "chipotle-carnitas-bowl",
+                "dishName": "Chipotle Carnitas Bowl",
                 "reason": "Rotating dish."
               }
             },
@@ -618,8 +618,8 @@
                 "reason": "Planned for Sunday."
               },
               "dinner": {
-                "dishId": "chicken-noodles-asian",
-                "dishName": "Chicken + Noodles (Asian)",
+                "dishId": "veggie-pasta",
+                "dishName": "Chicken + Rice",
                 "reason": "Rotating dish."
               },
               "supper": {
@@ -650,14 +650,14 @@
                 "reason": "Planned for Monday."
               },
               "dinner": {
-                "dishId": "steak",
-                "dishName": "Chicken Pasta",
+                "dishId": "chicken-noodles-asian",
+                "dishName": "Chicken + Noodles (Asian)",
                 "reason": "Rotating dish."
               },
               "supper": {
-                "dishId": "chipotle-carnitas-bowl",
-                "dishName": "Chipotle Carnitas Bowl",
-                "reason": "Rotating dish."
+                "dishId": "pork-fries-green-beans-1",
+                "dishName": "Pork + Fries + Green Beans",
+                "reason": "Targeting every 6-8 days."
               }
             },
             "mealOrder": [
@@ -682,8 +682,8 @@
                 "reason": "Planned for Tuesday."
               },
               "dinner": {
-                "dishId": "chicken-fries",
-                "dishName": "Chicken + Fries",
+                "dishId": "steak",
+                "dishName": "Chicken Pasta",
                 "reason": "Rotating dish."
               },
               "supper": {
