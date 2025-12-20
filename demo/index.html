@@ -1,339 +1,153 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Meal Planner AI – Demo</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg: #05080f;
-      --panel: #0f1725;
-      --border: #1f2a3d;
-      --text: #e2e8f0;
-      --muted: #94a3b8;
-      --accent: #5eead4;
-      --accent-2: #a855f7;
-      --shadow: 0 20px 60px rgba(0, 0, 0, 0.32);
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      min-height: 100vh;
-      font-family: "Manrope", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: radial-gradient(circle at 12% 18%, rgba(94, 234, 212, 0.1), transparent 30%),
-                  radial-gradient(circle at 80% 8%, rgba(168, 85, 247, 0.12), transparent 30%),
-                  var(--bg);
-      color: var(--text);
-      padding: 28px 16px 48px;
-    }
-    .page { max-width: 1040px; margin: 0 auto; }
-    header {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 14px;
-      align-items: flex-start;
-      justify-content: space-between;
-      margin-bottom: 18px;
-    }
-    h1 { font-family: "Space Grotesk", "Manrope", sans-serif; font-size: 30px; margin: 0 0 6px; }
-    h2 { font-family: "Space Grotesk", "Manrope", sans-serif; font-size: 20px; margin: 0 0 8px; }
-    p { margin: 0; }
-    .muted { color: var(--muted); }
-    .eyebrow { font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
-    .actions { display: flex; gap: 10px; flex-wrap: wrap; }
-    .button {
-      border: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.04);
-      color: var(--text);
-      padding: 10px 14px;
-      border-radius: 10px;
-      text-decoration: none;
-      font-weight: 600;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      transition: transform 120ms ease, border-color 120ms ease;
-    }
-    .button:hover { transform: translateY(-1px); border-color: var(--accent); }
-    .button.primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); border: none; color: #0b1020; }
-    .grid {
-      display: grid;
-      gap: 14px;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      margin-top: 12px;
-    }
-    .card {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 16px 18px 18px;
-      box-shadow: var(--shadow);
-    }
-    form { display: grid; gap: 12px; }
-    label { display: grid; gap: 6px; font-weight: 600; color: var(--text); }
-    input, select {
-      width: 100%;
-      padding: 10px 12px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      background: #0b1020;
-      color: var(--text);
-      font-size: 15px;
-      font-family: "Manrope", sans-serif;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-      font-size: 14px;
-    }
-    th, td {
-      border: 1px solid var(--border);
-      padding: 8px 10px;
-      text-align: left;
-    }
-    th { background: rgba(255, 255, 255, 0.04); font-weight: 700; }
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 10px;
-      background: rgba(94, 234, 212, 0.1);
-      border: 1px solid rgba(94, 234, 212, 0.28);
-      border-radius: 999px;
-      color: var(--text);
-      font-size: 13px;
-    }
-    .list {
-      display: grid;
-      gap: 8px;
-      margin-top: 10px;
-      padding-left: 12px;
-      color: var(--muted);
-    }
-    .list strong { color: var(--text); }
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 10px;
-      background: rgba(255, 171, 0, 0.12);
-      color: #fbbf24;
-      border: 1px solid rgba(255, 171, 0, 0.3);
-      border-radius: 10px;
-      font-size: 13px;
-      font-weight: 700;
-    }
-    @media (max-width: 640px) {
-      body { padding: 22px 14px 36px; }
-      header { align-items: flex-start; }
-      table { font-size: 13px; }
-    }
-  </style>
+  <title>Meal Planner AI - Demo</title>
+  <link rel="stylesheet" href="../public/styles.css">
 </head>
 <body>
-  <div class="page">
-    <header>
-      <div>
-        <p class="eyebrow">Demo</p>
+  <header>
+    <div class="header-inner">
+      <div class="branding">
         <h1>Meal Planner AI</h1>
-        <p class="muted">Static demo using sample data. The full app serves the same logic via API + UI.</p>
+        <p class="tagline">Suggest meals, capture favorites, and adjust your rotation without the CLI. (Static demo)</p>
       </div>
-      <div class="actions">
-        <a class="button" href="../">Repo root</a>
-        <a class="button" href="https://github.com/Wesleyelsew96/meal-planner-ai" target="_blank" rel="noreferrer">GitHub</a>
-      </div>
-    </header>
-
-    <div class="grid">
-      <section class="card">
-        <div class="pill">Plan inputs</div>
-        <h2>Generate a rotation</h2>
-        <form id="plan-form">
-          <label>
-            Profile
-            <select name="profile" id="profile">
-              <option value="wesley">Wesley</option>
-              <option value="jason">Jason</option>
-            </select>
-          </label>
-          <label>
-            Start date
-            <input type="date" name="date" id="start-date">
-          </label>
-          <label>
-            Days
-            <select name="days" id="days">
-              <option value="3">3 days</option>
-              <option value="5" selected>5 days</option>
-              <option value="7">7 days</option>
-              <option value="10">10 days</option>
-            </select>
-          </label>
-          <button class="button primary" type="submit">Generate plan</button>
-        </form>
-        <p class="muted" style="margin-top:8px;">Logic: deterministic rotation by date and meal type; cycles through the dish list for each meal.</p>
-      </section>
-
-      <section class="card">
-        <div class="pill">Dishes</div>
-        <h2>Sample library</h2>
-        <div class="list" id="dish-list"></div>
-      </section>
+      <form id="user-form" class="user-panel">
+        <div class="user-field">
+          <label for="user-select">Current User</label>
+          <select id="user-select"></select>
+        </div>
+        <div class="user-field">
+          <label for="user-name">Edit Name</label>
+          <input id="user-name" type="text" placeholder="e.g., Taylor" />
+        </div>
+        <div class="user-field">
+          <label for="user-meals">Meals per day</label>
+          <select id="user-meals">
+            <option value="2">2 meals</option>
+            <option value="3">3 meals</option>
+            <option value="4">4 meals</option>
+          </select>
+        </div>
+        <div class="user-field buttons">
+          <button type="button" id="user-create" class="secondary">Add user</button>
+          <button type="submit" id="user-save" class="primary">Save</button>
+          <button type="button" id="user-delete" class="danger">Delete</button>
+        </div>
+        <div class="user-field summary">
+          <div id="user-summary" class="user-summary"></div>
+          <p id="user-status" class="status" aria-live="polite"></p>
+        </div>
+      </form>
     </div>
+  </header>
 
-    <section class="card" style="margin-top:14px;">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-        <div class="pill">Output</div>
-        <span class="badge">Static demo</span>
-        <span class="muted">Hooked to sample data only.</span>
+  <main>
+    <section class="panel heuristics-panel">
+      <div class="heuristics-header">
+        <h2>Suggestion Heuristics</h2>
+        <p class="hint">Hard constraints always apply first; reorder soft heuristics to fine-tune behavior.</p>
       </div>
-      <h2 style="margin-top:10px;">Planned meals</h2>
-      <div id="plan-output" class="muted">No plan yet. Generate above.</div>
+      <div class="heuristics-groups">
+        <div class="heuristic-group">
+          <h3>Hard Constraints</h3>
+          <p class="hint">Always enforced by the planner. These cannot be reordered.</p>
+          <ul id="heuristic-hard-list" class="heuristic-hard-list" aria-live="polite"></ul>
+        </div>
+        <div class="heuristic-group">
+          <div class="heuristic-group-header">
+            <h3>Soft Heuristics</h3>
+            <p class="hint">Drag cards to change the fallback priority.</p>
+          </div>
+          <div id="heuristic-presets" class="heuristic-presets" role="group" aria-label="Strategy presets"></div>
+          <ol id="heuristic-list" class="heuristic-list" aria-live="polite"></ol>
+        </div>
+      </div>
     </section>
-  </div>
 
-  <script>
-    const sampleProfiles = {
-      wesley: {
-        name: "Wesley",
-        dishes: {
-          breakfast: [
-            "Eggs + Bacon",
-            "Greek Yogurt + Granola",
-            "Oatmeal with Berries",
-            "Breakfast Burrito",
-          ],
-          lunch: [
-            "Chicken Salad Wrap",
-            "Turkey Sandwich",
-            "Leftover Stir Fry",
-            "Soup + Bread",
-          ],
-          dinner: [
-            "Grilled Salmon + Veg",
-            "Tacos (Beef/Chicken)",
-            "Pasta Primavera",
-            "Sheet Pan Chicken",
-            "Homemade Pizza",
-            "Curry + Rice",
-            "Burgers + Sweet Potato Fries",
-          ],
-        },
-      },
-      jason: {
-        name: "Jason",
-        dishes: {
-          breakfast: ["Protein Shake", "Avocado Toast", "Omelette"],
-          lunch: ["Chicken Caesar Salad", "Sushi Bento", "Veggie Quesadilla"],
-          dinner: ["Steak + Potatoes", "Shrimp Pasta", "BBQ Chicken Bowls", "Veggie Chili"],
-        },
-      },
-    };
+    <section class="panel" id="dish-panel">
+      <h2>Dish Library</h2>
+      <div class="dish-columns" id="dish-columns"></div>
+    </section>
 
-    const mealTypes = ["breakfast", "lunch", "dinner"];
+    <section class="panel">
+      <h2>Add / Edit Dish</h2>
+      <form id="dish-form">
+        <input type="hidden" id="dish-id" />
+        <div class="field">
+          <label for="dish-name">Dish name</label>
+          <input id="dish-name" type="text" placeholder="e.g., Veggie Omelette" required />
+        </div>
+        <div class="field frequency-field">
+          <div class="frequency-header">
+            <label>Frequency</label>
+            <div id="frequency-toggle" class="frequency-toggle" role="group" aria-label="Frequency mode">
+              <button type="button" class="frequency-tab active" data-frequency-mode="days" aria-pressed="true">Weekly</button>
+              <button type="button" class="frequency-tab" data-frequency-mode="ratio" aria-pressed="false">X per Y</button>
+            </div>
+          </div>
+          <div id="frequency-days-panel" class="frequency-panel">
+            <div id="dish-days" class="day-selector"></div>
+          </div>
+          <div id="frequency-ratio-panel" class="frequency-panel" hidden>
+            <div class="ratio-row">
+              <span class="ratio-label">1 time every</span>
+              <input id="frequency-ratio-min" type="text" inputmode="numeric" pattern="[0-9]*" aria-label="Minimum days between servings" />
+              <span class="ratio-label">to</span>
+              <input id="frequency-ratio-max" type="text" inputmode="numeric" pattern="[0-9]*" aria-label="Maximum days between servings (optional)" />
+              <span class="ratio-label">days</span>
+            </div>
+            <small class="ratio-hint">Leave max blank for a fixed cadence.</small>
+          </div>
+        </div>
+        <fieldset class="field">
+          <legend>Meal types</legend>
+          <div id="meal-type-options" class="checkbox-group"></div>
+        </fieldset>
+        <div class="field">
+          <label>Food groups</label>
+          <div id="food-group-grid" class="food-groups"></div>
+        </div>
+        <div class="field">
+          <label for="dish-notes">Notes</label>
+          <textarea id="dish-notes" placeholder="Any prep notes or favorite sides"></textarea>
+        </div>
+        <div class="actions">
+          <button type="submit" class="primary">Save dish</button>
+          <button type="button" id="dish-reset" class="secondary">Reset form</button>
+          <button type="button" id="dish-delete" class="danger" disabled>Delete dish</button>
+        </div>
+        <p id="dish-form-status" class="status" aria-live="polite"></p>
+      </form>
+    </section>
 
-    const formatDate = (date) =>
-      date.toLocaleDateString(undefined, { month: "short", day: "numeric", weekday: "short" });
+    <section class="panel">
+      <h2>Suggestions</h2>
+      <form id="suggestion-form" class="suggestion-controls">
+        <div class="field suggestion-date-field">
+          <label for="suggestion-date">Start date</label>
+          <input id="suggestion-date" type="date" />
+        </div>
+        <div class="field suggestion-days-field">
+          <label for="suggestion-days">Days</label>
+          <input id="suggestion-days" type="number" min="1" max="7" value="1" />
+        </div>
+        <div class="field button-field">
+          <button type="submit" class="primary">Suggest</button>
+        </div>
+      </form>
+      <p id="suggestion-status" class="status" aria-live="polite"></p>
+      <div id="suggestions"></div>
+    </section>
+  </main>
 
-    const rotatePlan = (profileKey, startDate, days) => {
-      const profile = sampleProfiles[profileKey];
-      if (!profile) return [];
-      const plan = [];
-      for (let i = 0; i < days; i += 1) {
-        const date = new Date(startDate);
-        date.setDate(date.getDate() + i);
-        const dayEntry = { date, meals: {} };
-        mealTypes.forEach((meal) => {
-          const dishes = profile.dishes[meal] || [];
-          if (!dishes.length) {
-            dayEntry.meals[meal] = "No dish set";
-            return;
-          }
-          const idx = (date.getDate() + i) % dishes.length; // deterministic rotation
-          dayEntry.meals[meal] = dishes[idx];
-        });
-        plan.push(dayEntry);
-      }
-      return plan;
-    };
+  <footer>
+    <small>Baseline rotation only. Favorites, allergies, and budgeting coming soon.</small>
+  </footer>
 
-    const renderDishList = () => {
-      const list = document.getElementById("dish-list");
-      list.innerHTML = "";
-      const profileKey = document.getElementById("profile").value;
-      const profile = sampleProfiles[profileKey];
-      mealTypes.forEach((meal) => {
-        const title = document.createElement("div");
-        title.innerHTML = `<strong>${meal.charAt(0).toUpperCase() + meal.slice(1)}</strong>`;
-        const items = document.createElement("div");
-        items.style.display = "grid";
-        items.style.gap = "4px";
-        (profile.dishes[meal] || []).forEach((dish) => {
-          const item = document.createElement("span");
-          item.textContent = `• ${dish}`;
-          items.appendChild(item);
-        });
-        list.appendChild(title);
-        list.appendChild(items);
-      });
-    };
-
-    const renderPlan = (plan) => {
-      const container = document.getElementById("plan-output");
-      if (!plan.length) {
-        container.textContent = "No plan yet. Generate above.";
-        container.className = "muted";
-        return;
-      }
-      const table = document.createElement("table");
-      const thead = document.createElement("thead");
-      thead.innerHTML = "<tr><th>Date</th><th>Breakfast</th><th>Lunch</th><th>Dinner</th></tr>";
-      table.appendChild(thead);
-      const tbody = document.createElement("tbody");
-      plan.forEach((entry) => {
-        const row = document.createElement("tr");
-        const dateCell = document.createElement("td");
-        dateCell.textContent = formatDate(entry.date);
-        row.appendChild(dateCell);
-        mealTypes.forEach((meal) => {
-          const cell = document.createElement("td");
-          cell.textContent = entry.meals[meal] || "—";
-          row.appendChild(cell);
-        });
-        tbody.appendChild(row);
-      });
-      table.appendChild(tbody);
-      container.innerHTML = "";
-      container.className = "";
-      container.appendChild(table);
-    };
-
-    const init = () => {
-      const today = new Date();
-      const dateInput = document.getElementById("start-date");
-      dateInput.valueAsDate = today;
-      renderDishList();
-
-      const form = document.getElementById("plan-form");
-      form.addEventListener("submit", (e) => {
-        e.preventDefault();
-        const profileKey = document.getElementById("profile").value;
-        const days = Number(document.getElementById("days").value);
-        const start = dateInput.valueAsDate || new Date();
-        const plan = rotatePlan(profileKey, start, days);
-        renderPlan(plan);
-      });
-
-      document.getElementById("profile").addEventListener("change", () => {
-        renderDishList();
-      });
-    };
-
-    init();
-  </script>
+  <script src="../public/shared-frequency.js"></script>
+  <script src="mock-api.js"></script>
+  <script src="../public/app.js"></script>
 </body>
 </html>
