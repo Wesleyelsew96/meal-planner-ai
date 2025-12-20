@@ -1,3 +1,8 @@
-ai-interview-coach/
-lyrics-generator/
+node_modules/
+.DS_Store
+dist/
+*.log
+*.tmp
+*.swp
+coverage/
 
