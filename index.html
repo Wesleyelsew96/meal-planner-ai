@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meal Planner AI</title>
+  <style>
+    :root {
+      --bg: #0f1725;
+      --panel: #0b1020;
+      --border: #1f2a3d;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #5eead4;
+      --accent-2: #a855f7;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: var(--bg);
+      font-family: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+      color: var(--text);
+      padding: 24px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px 26px;
+      max-width: 480px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+    }
+    h1 { margin: 0 0 8px; font-size: 28px; }
+    p { margin: 0 0 14px; color: var(--muted); }
+    .button {
+      display: inline-block;
+      padding: 11px 16px;
+      border-radius: 10px;
+      text-decoration: none;
+      font-weight: 700;
+      color: #0b1020;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      margin-top: 4px;
+    }
+    .link { color: var(--accent); text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Meal Planner AI</h1>
+    <p>Rotation-based planner with a browser UI. Try the static demo or view the repository.</p>
+    <a class="button" href="./demo/">Open Demo</a>
+    <p><a class="link" href="https://github.com/Wesleyelsew96/meal-planner-ai" target="_blank" rel="noreferrer">View on GitHub</a></p>
+  </div>
+</body>
+</html>

@@ -97,7 +97,7 @@
           ]
         },
         {
-          "id": "sushi",
+          "id": "costco",
           "name": "Costco",
           "mealTypes": [
             "lunch"
@@ -109,7 +109,8 @@
             ],
             "produce": [],
             "starch": [
-              "Bread"
+              "Bread",
+              "Fries"
             ],
             "dairy": [
               "Cheese"
@@ -471,235 +472,10 @@
         }
       },
       "suggestions": {
-        "generatedAt": "2025-11-13T05:31:06.352Z",
-        "startDate": "2025-11-12",
-        "days": 7,
-        "plan": [
-          {
-            "date": "2025-11-12",
-            "weekday": "Wednesday",
-            "meals": {
-              "breakfast": {
-                "dishId": "smoothie",
-                "dishName": "Eggs and Bacon",
-                "reason": "Planned for Wednesday."
-              },
-              "lunch": {
-                "dishId": "grain-bowl",
-                "dishName": "Turkey Sandwich",
-                "reason": "Planned for Wednesday."
-              },
-              "dinner": {
-                "dishId": "veggie-pasta",
-                "dishName": "Chicken + Rice",
-                "reason": "Rotating dish."
-              },
-              "supper": {
-                "dishId": "steak-fries-asparagus",
-                "dishName": "Steak + Fries + Asparagus",
-                "reason": "Rotating dish."
-              }
-            },
-            "mealOrder": [
-              "breakfast",
-              "lunch",
-              "dinner",
-              "supper"
-            ]
-          },
-          {
-            "date": "2025-11-13",
-            "weekday": "Thursday",
-            "meals": {
-              "breakfast": {
-                "dishId": "smoothie",
-                "dishName": "Eggs and Bacon",
-                "reason": "Planned for Thursday."
-              },
-              "lunch": {
-                "dishId": "grain-bowl",
-                "dishName": "Turkey Sandwich",
-                "reason": "Planned for Thursday."
-              },
-              "dinner": {
-                "dishId": "chicken-noodles-asian",
-                "dishName": "Chicken + Noodles (Asian)",
-                "reason": "Rotating dish."
-              },
-              "supper": {
-                "dishId": "chipotle-carnitas-bowl",
-                "dishName": "Chipotle Carnitas Bowl",
-                "reason": "Rotating dish."
-              }
-            },
-            "mealOrder": [
-              "breakfast",
-              "lunch",
-              "dinner",
-              "supper"
-            ]
-          },
-          {
-            "date": "2025-11-14",
-            "weekday": "Friday",
-            "meals": {
-              "breakfast": {
-                "dishId": "smoothie",
-                "dishName": "Eggs and Bacon",
-                "reason": "Planned for Friday."
-              },
-              "lunch": {
-                "dishId": "pizzeria-leopold",
-                "dishName": "Pizzeria Leopold",
-                "reason": "Planned for Friday."
-              },
-              "dinner": {
-                "dishId": "steak",
-                "dishName": "Chicken Pasta",
-                "reason": "Rotating dish."
-              },
-              "supper": {
-                "dishId": "steak-fries-asparagus",
-                "dishName": "Steak + Fries + Asparagus",
-                "reason": "Rotating dish."
-              }
-            },
-            "mealOrder": [
-              "breakfast",
-              "lunch",
-              "dinner",
-              "supper"
-            ]
-          },
-          {
-            "date": "2025-11-15",
-            "weekday": "Saturday",
-            "meals": {
-              "breakfast": {
-                "dishId": "smoothie",
-                "dishName": "Eggs and Bacon",
-                "reason": "Planned for Saturday."
-              },
-              "lunch": {
-                "dishId": "pizzeria-leopold",
-                "dishName": "Pizzeria Leopold",
-                "reason": "Planned for Saturday."
-              },
-              "dinner": {
-                "dishId": "chicken-fries",
-                "dishName": "Chicken + Fries",
-                "reason": "Rotating dish."
-              },
-              "supper": {
-                "dishId": "chipotle-carnitas-bowl",
-                "dishName": "Chipotle Carnitas Bowl",
-                "reason": "Rotating dish."
-              }
-            },
-            "mealOrder": [
-              "breakfast",
-              "lunch",
-              "dinner",
-              "supper"
-            ]
-          },
-          {
-            "date": "2025-11-16",
-            "weekday": "Sunday",
-            "meals": {
-              "breakfast": {
-                "dishId": "smoothie",
-                "dishName": "Eggs and Bacon",
-                "reason": "Planned for Sunday."
-              },
-              "lunch": {
-                "dishId": "grain-bowl",
-                "dishName": "Turkey Sandwich",
-                "reason": "Planned for Sunday."
-              },
-              "dinner": {
-                "dishId": "veggie-pasta",
-                "dishName": "Chicken + Rice",
-                "reason": "Rotating dish."
-              },
-              "supper": {
-                "dishId": "burger-fries",
-                "dishName": "Burger + Fries",
-                "reason": "Targeting every 3-4 days."
-              }
-            },
-            "mealOrder": [
-              "breakfast",
-              "lunch",
-              "dinner",
-              "supper"
-            ]
-          },
-          {
-            "date": "2025-11-17",
-            "weekday": "Monday",
-            "meals": {
-              "breakfast": {
-                "dishId": "smoothie",
-                "dishName": "Eggs and Bacon",
-                "reason": "Planned for Monday."
-              },
-              "lunch": {
-                "dishId": "grain-bowl",
-                "dishName": "Turkey Sandwich",
-                "reason": "Planned for Monday."
-              },
-              "dinner": {
-                "dishId": "chicken-noodles-asian",
-                "dishName": "Chicken + Noodles (Asian)",
-                "reason": "Rotating dish."
-              },
-              "supper": {
-                "dishId": "pork-fries-green-beans-1",
-                "dishName": "Pork + Fries + Green Beans",
-                "reason": "Targeting every 6-8 days."
-              }
-            },
-            "mealOrder": [
-              "breakfast",
-              "lunch",
-              "dinner",
-              "supper"
-            ]
-          },
-          {
-            "date": "2025-11-18",
-            "weekday": "Tuesday",
-            "meals": {
-              "breakfast": {
-                "dishId": "smoothie",
-                "dishName": "Eggs and Bacon",
-                "reason": "Planned for Tuesday."
-              },
-              "lunch": {
-                "dishId": "sushi",
-                "dishName": "Costco",
-                "reason": "Planned for Tuesday."
-              },
-              "dinner": {
-                "dishId": "steak",
-                "dishName": "Chicken Pasta",
-                "reason": "Rotating dish."
-              },
-              "supper": {
-                "dishId": "tacos-fogon-lagunero",
-                "dishName": "Tacos (Fogon Lagunero)",
-                "reason": "Planned for Tuesday."
-              }
-            },
-            "mealOrder": [
-              "breakfast",
-              "lunch",
-              "dinner",
-              "supper"
-            ]
-          }
-        ]
+        "generatedAt": null,
+        "startDate": null,
+        "days": 0,
+        "plan": []
       },
       "heuristics": [
         "avoidDuplicates",
@@ -840,37 +616,10 @@
       ],
       "selections": {},
       "suggestions": {
-        "generatedAt": "2025-11-08T08:36:03.235Z",
-        "startDate": "2025-11-08",
-        "days": 1,
-        "plan": [
-          {
-            "date": "2025-11-08",
-            "weekday": "Saturday",
-            "meals": {
-              "breakfast": {
-                "dishId": "eggs-bacon",
-                "dishName": "Eggs and Bacon",
-                "reason": "No day selected; showing unscheduled dish."
-              },
-              "lunch": {
-                "dishId": "chicken-salad",
-                "dishName": "Chicken Salad",
-                "reason": "No day selected; showing unscheduled dish."
-              },
-              "dinner": {
-                "dishId": "stir-fry",
-                "dishName": "Tofu Stir Fry",
-                "reason": "No day selected; showing unscheduled dish."
-              }
-            },
-            "mealOrder": [
-              "breakfast",
-              "lunch",
-              "dinner"
-            ]
-          }
-        ]
+        "generatedAt": null,
+        "startDate": null,
+        "days": 0,
+        "plan": []
       },
       "heuristics": [
         "avoidDuplicates",
