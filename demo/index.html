@@ -13,6 +13,9 @@
         <h1>Meal Planner AI</h1>
         <p class="tagline">Suggest meals, capture favorites, and adjust your rotation without the CLI. (Static demo)</p>
       </div>
+      <div class="actions">
+        <button type="button" id="demo-reset" class="secondary">Reset demo data</button>
+      </div>
       <form id="user-form" class="user-panel">
         <div class="user-field">
           <label for="user-select">Current User</label>
@@ -149,5 +152,16 @@
   <script src="../public/shared-frequency.js"></script>
   <script src="mock-api.js"></script>
   <script src="../public/app.js"></script>
+  <script>
+    const demoResetBtn = document.getElementById("demo-reset");
+    demoResetBtn?.addEventListener("click", () => {
+      if (typeof window.__mealPlannerDemoReset === "function") {
+        window.__mealPlannerDemoReset();
+        window.location.reload();
+      } else {
+        alert("Reset unavailable in this build.");
+      }
+    });
+  </script>
 </body>
 </html>

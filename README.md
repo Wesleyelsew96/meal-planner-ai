@@ -47,6 +47,14 @@ npm start
 - Add or edit dishes (name, meal types, notes/metadata) without touching the CLI.
 - Refresh suggestions for any date range (1-30 days) and click "Choose" to record the pick.
 
+Demo (GitHub Pages)
+-------------------
+
+- Live demo: https://wesleyelsew96.github.io/meal-planner-ai/demo/
+- Uses the full UI with a mock API + `localStorage` (no server required).
+- “Reset demo data” restores the default sample users/dishes in your browser.
+- For real persistence, run `npm start` locally (writes to `data/users.json`).
+
 Command Line Usage
 
 ```
